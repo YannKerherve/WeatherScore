@@ -224,20 +224,11 @@ const supabaseClient = window.supabaseClient;
 document.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabaseClient.auth.getSession();
     
+    // Si une session existe déjà, redirection directe
     if (session) {
-        const user = session.user;
-        const meta = user.user_metadata || {};
-        
-        updateProfileUI({
-            firstname: meta.first_name || '',
-            lastname: meta.last_name || '',
-            email: user.email,
-            vessel: meta.vessel || 'N/A',
-            company: meta.company || 'N/A',
-            grade: meta.grade || 'N/A'
-        });
+        window.location.href = 'https://yannkerherve.github.io/WeatherScore/welcome.html';
     }
-});
+});;
 
 // --- 2. GESTION DE L'AFFICHAGE DES SECTIONS ---
 function showSection(section) {
