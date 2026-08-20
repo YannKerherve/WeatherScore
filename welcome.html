@@ -464,4 +464,69 @@ nav.top-nav a:hover, nav.top-nav a.active {
 </div>
 
 </body>
+  <!-- Client Supabase JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script>
+  // 1. Initialisation Supabase (remplace par tes véritables clés)
+  const SUPABASE_URL = 'https://TON_PROJET.supabase.co';
+  const SUPABASE_ANON_KEY = 'TA_CLE_ANON_PUBLIC';
+  const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+  async function loadUserProfile() {
+    // 2. Vérification de la session
+    const { data: { session }, error } = await supabase.auth.getSession();
+
+    if (error || !session) {
+      // Si non connecté, retour au login
+      window.location.href = 'https://yannkerherve.github.io/WeatherScore/login/';
+      return;
+    }
+
+    const user = session.user;
+    const meta = user.user_metadata || {};
+
+    // 3. Injection dynamique des données
+    // Nom public ou email par défaut
+    document.querySelector('.profile-name').textContent = meta.full_name || meta.name || user.email.split('@')[0];
+    
+    // Rôle / Fonction
+    if (meta.role) {
+      document.querySelector('.profile-rank').textContent = meta.role;
+    }
+
+    // Email
+    const emailEl = document.querySelector('.info-value[style*="color: var(--signal)"]');
+    if (emailEl) emailEl.textContent = user.email;
+
+    // Compagnie
+    const infoValues = document.querySelectorAll('.info-value');
+    if (infoValues[0] && meta.company) infoValues[0].textContent = meta.company;
+    
+    // Navire actuel
+    if (infoValues[1] && meta.ship) infoValues[1].textContent = meta.ship;
+
+    // Clé API (extraite des métadonnées ou générée à partir de l'ID utilisateur)
+    const apiKeyEl = document.querySelector('.code-inline');
+    if (apiKeyEl) {
+      apiKeyEl.textContent = meta.api_key || `ws_live_${user.id.slice(0, 16)}`;
+    }
+
+    // 4. Gestion de la déconnexion
+    const logoutBtn = Array.from(document.querySelectorAll('.btn-action')).find(
+      el => el.textContent.trim().toLowerCase() === 'se déconnecter'
+    );
+
+    if (logoutBtn) {
+      logoutBtn.addEventListener('click', async (e) => {
+        e.preventDefault();
+        await supabase.auth.signOut();
+        window.location.href = 'https://yannkerherve.github.io/WeatherScore/login/';
+      });
+    }
+  }
+
+  // Lancement au chargement
+  document.addEventListener('DOMContentLoaded', loadUserProfile);
+</script>
 </html>
