@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portail d'Accès — WeatherScore</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="supabase-client.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="icon" type="image/x-icon" href="facion.png">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -216,107 +218,76 @@
     </footer>
 
     <script>
-        // --- 1. CONFIGURATION SUPABASE ---
-        // Remplacez ces valeurs par vos vrais identifiants de projet Supabase
-        //const SUPABASE_URL = "https://VOTRE_PROJECT_ID.supabase.co";
-        //const SUPABASE_ANON_KEY = "VOTRE_ANON_PUBLIC_KEY";
-        
-        //let supabase = null;
-        //if(SUPABASE_URL !== "https://VOTRE_PROJECT_ID.supabase.co") {
-        //    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        //}
+// Vérifier la session au chargement de la page
+document.addEventListener('DOMContentLoaded', async () => {
+    const { data: { session } } = await supabase.auth.getSession() ;
+    if (session) {
+        window.location.href = "profile.html" ; // Redirige si déjà connecté
+    }
+}) ;
 
-        // --- 2. SWITCH INTERFACE ---
-        function showSection(section) {
-            document.getElementById('login-section').classList.add('auth-hidden');
-            document.getElementById('signup-section').classList.add('auth-hidden');
-            document.getElementById('logged-in-section').classList.add('auth-hidden');
+function showSection(section) {
+    document.getElementById('login-section').classList.add('auth-hidden') ;
+    document.getElementById('signup-section').classList.add('auth-hidden') ;
 
-            if(section === 'login') {
-                document.getElementById('login-section').classList.remove('auth-hidden');
-            } else if(section === 'signup') {
-                document.getElementById('signup-section').classList.remove('auth-hidden');
-            } else if(section === 'profile') {
-                document.getElementById('logged-in-section').classList.remove('auth-hidden');
+    if (section === 'login') {
+        document.getElementById('login-section').classList.remove('auth-hidden') ;
+    } else if (section === 'signup') {
+        document.getElementById('signup-section').classList.remove('auth-hidden') ;
+    }
+}
+
+// Inscription
+async function handleSignup(e) {
+    e.preventDefault() ;
+    const email = document.getElementById('signup-email').value ;
+    const password = document.getElementById('signup-password').value ;
+    const firstname = document.getElementById('signup-firstname').value ;
+    const lastname = document.getElementById('signup-lastname').value ;
+    const vessel = document.getElementById('signup-vessel').value ;
+    const company = document.getElementById('signup-company').value ;
+    const grade = document.getElementById('signup-grade').value ;
+
+    try {
+        const { data, error } = await supabase.auth.signUp({
+            email,
+            password,
+            options: {
+                data: {
+                    first_name: firstname,
+                    last_name: lastname,
+                    vessel: vessel,
+                    company: company,
+                    grade: grade
+                }
             }
-        }
+        }) ;
 
-        // --- 3. EXÉCUTION CONNEXION (LOGIN) ---
-        async function handleLogin(e) {
-            e.preventDefault();
-            const email = document.getElementById('login-email').value;
-            const password = document.getElementById('login-password').value;
+        if (error) throw error ;
 
-            if(!supabase) {
-                // Simulation locale si Supabase n'est pas encore configuré
-                alert("[Mode Démo] Connexion réussie ! (Pensez à configurer Supabase)");
-                updateProfileUI({
-                    firstname: "Archibald", lastname: "Haddock", email: email,
-                    vessel: "Karraboudjan", company: "RG Shipping", grade: "Master"
-                });
-                return;
-            }
+        alert("Inscription réussie ! Vérifie ton adresse mail pour valider ton compte (si option activée), puis connecte-toi.") ;
+        showSection('login') ;
+    } catch (err) {
+        alert("Erreur d'inscription : " + err.message) ;
+    }
+}
 
-            try {
-                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
-                if (error) throw error;
-                
-                // Récupération des données utilisateur additionnelles stockées dans les métadonnées
-                const userMetadata = data.user.user_metadata;
-                updateProfileUI({
-                    firstname: userMetadata.first_name || '',
-                    lastname: userMetadata.last_name || '',
-                    email: data.user.email,
-                    vessel: userMetadata.vessel || 'N/A',
-                    company: userMetadata.company || 'N/A',
-                    grade: userMetadata.grade || 'N/A'
-                });
-            } catch (err) {
-                alert("Erreur de connexion : " + err.message);
-            }
-        }
+// Connexion
+async function handleLogin(e) {
+    e.preventDefault() ;
+    const email = document.getElementById('login-email').value ;
+    const password = document.getElementById('login-password').value ;
 
-        // --- 4. EXÉCUTION INSCRIPTION (REGISTER) ---
-        async function handleSignup(e) {
-            e.preventDefault();
-            const email = document.getElementById('signup-email').value;
-            const password = document.getElementById('signup-password').value;
-            const firstname = document.getElementById('signup-firstname').value;
-            const lastname = document.getElementById('signup-lastname').value;
-            const vessel = document.getElementById('signup-vessel').value;
-            const company = document.getElementById('signup-company').value;
-            const grade = document.getElementById('signup-grade').value;
+    try {
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password }) ;
+        if (error) throw error ;
 
-            if(!supabase) {
-                alert("[Mode Démo] Compte simulé avec succès ! Connexion automatique.");
-                updateProfileUI({ firstname, lastname, email, vessel, company, grade });
-                return;
-            }
-
-            try {
-                // Inscription avec insertion des métadonnées personnalisées (options.data)
-                const { data, error } = await supabase.auth.signUp({
-                    email,
-                    password,
-                    options: {
-                        data: {
-                            first_name: firstname,
-                            last_name: lastname,
-                            vessel: vessel,
-                            company: company,
-                            grade: grade
-                        }
-                    }
-                });
-                if (error) throw error;
-                
-                alert("Compte créé ! Si la confirmation par mail est activée, vérifiez votre boîte de réception.");
-                showSection('login');
-            } catch (err) {
-                alert("Erreur d'inscription : " + err.message);
-            }
-        }
-
+        // Redirection vers l'espace profil
+        window.location.href = "profile.html" ;
+    } catch (err) {
+        alert("Erreur de connexion : " + err.message) ;
+    }
+}
         // --- 5. ENRICHISSEMENT DE LA VUE PROFIL DEBLOQUÉ ---
         function updateProfileUI(user) {
             document.getElementById('profile-name').innerText = `${user.firstname} ${user.lastname.toUpperCase()}`;
