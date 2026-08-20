@@ -219,7 +219,7 @@
 <script>
 // --- 1. VÉRIFICATION DE SESSION AU CHARGEMENT ---
 document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { session } } = await supabase.auth.getSession() ;
+    const { data: { session } } = await supabaseClient.auth.getSession() ;
     
     if (session) {
         const user = session.user ;
@@ -263,7 +263,7 @@ async function handleSignup(e) {
     const grade = document.getElementById('signup-grade').value ;
 
     try {
-        const { data, error } = await supabase.auth.signUp({
+        const { data, error } = await supabaseClient.auth.signUp({
             email,
             password,
             options: {
@@ -298,7 +298,7 @@ async function handleLogin(e) {
     const password = document.getElementById('login-password').value ;
 
     try {
-        const { data, error } = await supabase.auth.signInWithPassword({ email, password }) ;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }) ;
         if (error) throw error ;
 
         const meta = data.user.user_metadata || {} ;
@@ -330,7 +330,7 @@ function updateProfileUI(user) {
 
 // --- 6. DÉCONNEXION ---
 async function handleLogout() {
-    await supabase.auth.signOut() ;
+    await supabaseClient.auth.signOut() ;
     document.getElementById('login-form').reset() ;
     document.getElementById('signup-form').reset() ;
     showSection('login') ;
