@@ -217,13 +217,16 @@
     </footer>
 
 <script>
+// Récupération de l'instance Supabase
+const supabaseClient = window.supabaseClient;
+
 // --- 1. VÉRIFICATION DE SESSION AU CHARGEMENT ---
 document.addEventListener('DOMContentLoaded', async () => {
-    const { data: { session } } = await supabaseClient.auth.getSession() ;
+    const { data: { session } } = await supabaseClient.auth.getSession();
     
     if (session) {
-        const user = session.user ;
-        const meta = user.user_metadata || {} ;
+        const user = session.user;
+        const meta = user.user_metadata || {};
         
         updateProfileUI({
             firstname: meta.first_name || '',
@@ -232,35 +235,35 @@ document.addEventListener('DOMContentLoaded', async () => {
             vessel: meta.vessel || 'N/A',
             company: meta.company || 'N/A',
             grade: meta.grade || 'N/A'
-        }) ;
+        });
     }
-}) ;
+});
 
 // --- 2. GESTION DE L'AFFICHAGE DES SECTIONS ---
 function showSection(section) {
-    document.getElementById('login-section').classList.add('auth-hidden') ;
-    document.getElementById('signup-section').classList.add('auth-hidden') ;
-    document.getElementById('logged-in-section').classList.add('auth-hidden') ;
+    document.getElementById('login-section').classList.add('auth-hidden');
+    document.getElementById('signup-section').classList.add('auth-hidden');
+    document.getElementById('logged-in-section').classList.add('auth-hidden');
 
     if (section === 'login') {
-        document.getElementById('login-section').classList.remove('auth-hidden') ;
+        document.getElementById('login-section').classList.remove('auth-hidden');
     } else if (section === 'signup') {
-        document.getElementById('signup-section').classList.remove('auth-hidden') ;
+        document.getElementById('signup-section').classList.remove('auth-hidden');
     } else if (section === 'profile') {
-        document.getElementById('logged-in-section').classList.remove('auth-hidden') ;
+        document.getElementById('logged-in-section').classList.remove('auth-hidden');
     }
 }
 
 // --- 3. INSCRIPTION ---
 async function handleSignup(e) {
-    e.preventDefault() ;
-    const email = document.getElementById('signup-email').value ;
-    const password = document.getElementById('signup-password').value ;
-    const firstname = document.getElementById('signup-firstname').value ;
-    const lastname = document.getElementById('signup-lastname').value ;
-    const vessel = document.getElementById('signup-vessel').value ;
-    const company = document.getElementById('signup-company').value ;
-    const grade = document.getElementById('signup-grade').value ;
+    e.preventDefault();
+    const email = document.getElementById('signup-email').value;
+    const password = document.getElementById('signup-password').value;
+    const firstname = document.getElementById('signup-firstname').value;
+    const lastname = document.getElementById('signup-lastname').value;
+    const vessel = document.getElementById('signup-vessel').value;
+    const company = document.getElementById('signup-company').value;
+    const grade = document.getElementById('signup-grade').value;
 
     try {
         const { data, error } = await supabaseClient.auth.signUp({
@@ -275,33 +278,33 @@ async function handleSignup(e) {
                     grade: grade
                 }
             }
-        }) ;
+        });
 
-        if (error) throw error ;
+        if (error) throw error;
 
-        alert("Inscription réussie ! Connexion en cours...") ;
+        alert("Inscription réussie ! Connexion en cours...");
         
         if (data.session) {
-            updateProfileUI({ firstname, lastname, email, vessel, company, grade }) ;
+            updateProfileUI({ firstname, lastname, email, vessel, company, grade });
         } else {
-            showSection('login') ;
+            showSection('login');
         }
     } catch (err) {
-        alert("Erreur d'inscription : " + err.message) ;
+        alert("Erreur d'inscription : " + err.message);
     }
 }
 
 // --- 4. CONNEXION ---
 async function handleLogin(e) {
-    e.preventDefault() ;
-    const email = document.getElementById('login-email').value ;
-    const password = document.getElementById('login-password').value ;
+    e.preventDefault();
+    const email = document.getElementById('login-email').value;
+    const password = document.getElementById('login-password').value;
 
     try {
-        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password }) ;
-        if (error) throw error ;
+        const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
+        if (error) throw error;
 
-        const meta = data.user.user_metadata || {} ;
+        const meta = data.user.user_metadata || {};
         updateProfileUI({
             firstname: meta.first_name || '',
             lastname: meta.last_name || '',
@@ -309,31 +312,31 @@ async function handleLogin(e) {
             vessel: meta.vessel || 'N/A',
             company: meta.company || 'N/A',
             grade: meta.grade || 'N/A'
-        }) ;
+        });
     } catch (err) {
-        alert("Erreur de connexion : " + err.message) ;
+        alert("Erreur de connexion : " + err.message);
     }
 }
 
 // --- 5. MISE À JOUR DU PROFIL ---
 function updateProfileUI(user) {
-    document.getElementById('profile-name').innerText = `${user.firstname} ${user.lastname.toUpperCase()}` ;
-    document.getElementById('profile-email').innerText = user.email ;
-    document.getElementById('profile-vessel').innerText = user.vessel || 'Non renseigné' ;
-    document.getElementById('profile-meta').innerText = `${user.company || 'N/A'} / ${user.grade || 'N/A'}` ;
+    document.getElementById('profile-name').innerText = `${user.firstname} ${user.lastname.toUpperCase()}`;
+    document.getElementById('profile-email').innerText = user.email;
+    document.getElementById('profile-vessel').innerText = user.vessel || 'Non renseigné';
+    document.getElementById('profile-meta').innerText = `${user.company || 'N/A'} / ${user.grade || 'N/A'}`;
     
-    const fakeToken = "ws_live_" + btoa(user.email).substring(0, 16) + "_" + Math.floor(Math.random() * 89999 + 10000) ;
-    document.getElementById('profile-api-key').innerText = fakeToken ;
+    const fakeToken = "ws_live_" + btoa(user.email).substring(0, 16) + "_" + Math.floor(Math.random() * 89999 + 10000);
+    document.getElementById('profile-api-key').innerText = fakeToken;
     
-    showSection('profile') ;
+    showSection('profile');
 }
 
 // --- 6. DÉCONNEXION ---
 async function handleLogout() {
-    await supabaseClient.auth.signOut() ;
-    document.getElementById('login-form').reset() ;
-    document.getElementById('signup-form').reset() ;
-    showSection('login') ;
+    await supabaseClient.auth.signOut();
+    document.getElementById('login-form').reset();
+    document.getElementById('signup-form').reset();
+    showSection('login');
 }
 </script>
 </body>
