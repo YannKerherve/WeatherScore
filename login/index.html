@@ -304,14 +304,7 @@ async function handleLogin(e) {
         const { data, error } = await supabaseClient.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
-        const meta = data.user.user_metadata || {};
-        updateProfileUI({
-            firstname: meta.first_name || '',
-            lastname: meta.last_name || '',
-            email: data.user.email,
-            vessel: meta.vessel || 'N/A',
-            company: meta.company || 'N/A',
-            grade: meta.grade || 'N/A'
+        window.location.href = 'https://yannkerherve.github.io/WeatherScore/welcome.html';
         });
     } catch (err) {
         alert("Erreur de connexion : " + err.message);
