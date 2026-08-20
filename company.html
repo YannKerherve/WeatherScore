@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mentions Légales & Crédits — WeatherScore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" type="image/x-icon" href="facion.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ─── RESET & BASE (Identique à l'index) ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #050810;
+  --paper: #f4f1eb;
+  --ice: #e8f4ff;
+  --signal: #00d4ff;
+  --signal2: #0066ff;
+  --warm: #ff6b35;
+  --green: #00ff88;
+  --text-dim: rgba(255,255,255,0.35);
+  --text-mid: rgba(255,255,255,0.65);
+  --border: rgba(255,255,255,0.08);
+}
+
+body {
+  background: var(--ink);
+  color: white;
+  font-family: 'DM Sans', sans-serif;
+  line-height: 1.6;
+}
+
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: #050810; }
+::-webkit-scrollbar-thumb { background: var(--signal); border-radius: 2px; }
+
+/* ─── HEADER DE LA PAGE ─── */
+.legal-header {
+  padding: 100px 40px 60px;
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(to bottom, #0a0f1e, var(--ink));
+}
+.page-label {
+  font-family: 'DM Mono', monospace;
+  font-size: 11px;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--signal);
+  margin-bottom: 15px;
+}
+.page-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: clamp(40px, 6vw, 80px);
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+.page-title span { color: var(--signal); }
+
+/* ─── STRUCTURE DE LA PAGE ─── */
+.container {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 60px 40px;
+  display: grid;
+  grid-template-columns: 280px 1fr;
+  gap: 60px;
+}
+
+/* Navigation latérale fixe */
+.sidebar {
+  position: sticky;
+  top: 40px;
+  height: max-content;
+}
+.sidebar-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  color: white;
+}
+.sidebar-menu {
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.sidebar-menu a {
+  color: var(--text-mid);
+  text-decoration: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  transition: color 0.2s;
+}
+.sidebar-menu a:hover { color: var(--signal); }
+
+/* Contenu principal */
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 60px;
+}
+
+.section-block {
+  scroll-margin-top: 40px;
+}
+
+.section-num {
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  color: var(--signal);
+  margin-bottom: 8px;
+}
+
+.section-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 32px;
+  letter-spacing: 0.05em;
+  margin-bottom: 20px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+p {
+  color: var(--text-mid);
+  font-size: 15px;
+  margin-bottom: 16px;
+}
+
+strong {
+  color: white;
+}
+
+.law-quote {
+  background: rgba(0, 212, 255, 0.03);
+  border-left: 2px solid var(--signal);
+  padding: 15px 20px;
+  margin: 20px 0;
+  font-size: 14px;
+  color: rgba(255,255,255,0.8);
+  font-style: italic;
+}
+
+/* Grilles pour les crédits / réseaux */
+.profile-card {
+  background: rgba(255,255,255,0.02);
+  border: 1px solid var(--border);
+  padding: 24px;
+  border-radius: 4px;
+  margin-top: 20px;
+}
+
+.grid-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+  margin-top: 20px;
+}
+
+.logo-card {
+  background: rgba(255,255,255,0.01);
+  border: 1px solid var(--border);
+  padding: 20px;
+  border-radius: 4px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: 10px;
+}
+.logo-placeholder {
+  width: auto;
+  height: 40px;
+  opacity: 0.6;
+  filter: brightness(0) invert(1); /* Rend les logos blancs */
+}
+
+.link-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 15px;
+}
+.btn-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 16px;
+  background: rgba(255,255,255,0.05);
+  color: white;
+  text-decoration: none;
+  font-family: 'DM Mono', monospace;
+  font-size: 12px;
+  border-radius: 2px;
+  border: 1px solid var(--border);
+  transition: all 0.2s;
+}
+.btn-link:hover {
+  background: var(--signal);
+  color: var(--ink);
+  border-color: var(--signal);
+}
+
+.btn-back {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+.btn-back:hover { border-color: var(--signal); }
+
+
+
+/* Responsive */
+@media (max-width: 768px) {
+  .container { grid-template-columns: 1fr; gap: 40px; }
+  .sidebar { position: relative; top: 0; }
+}
+</style>
+</head>
+<body>
+
+<header class="legal-header">
+  <div class="page-label">Transparence & Conformité</div>
+  <h1 class="page-title">Mentions Légales & <span>Crédits</span></h1>
+</header>
+<div class="container">
+  
+  <aside class="sidebar">
+    <div><a href="welcome.html" class="btn-back"><img src=Av.png width="10"> Account</a></div>
+    <br></br>
+       
+    <h3 class="sidebar-title">Sommaire</h3>
+    <ul class="sidebar-menu">
+      <li><a href="#editeur">01. Édition & Publication</a></li>
+      <li><a href="#partenaires">02. Partenaires de confiance</a></li>
+      <li><a href="#credits">03. Crédits & Technologies</a></li>
+      <li><a href="#sources">04. Sources des Données</a></li>
+      <li><a href="#privacy">05. Données Personnelles</a></li>
+      <li><a href="#warning">06. Clause de Non-Responsabilité</a></li>
+    </ul>
+  </aside>
+
+  <main class="content">
+
+    <section id="editeur" class="section-block">
+      <div class="section-num">01 / Édition & Publication</div>
+      <h2 class="section-title">Mentions Éditoriales</h2>
+      <p>En vertu de l'<strong>Article 6 de la Loi n° 2004-575 du 21 juin 2004</strong> pour la confiance dans l'économie numérique (LCEN), il est précisé aux utilisateurs du site WeatherScore l'identité de l'intervenant dans le cadre de sa réalisation et de son suivi :</p>
+      
+      <div class="profile-card">
+        <p style="margin-bottom: 8px;"><strong>Créateur, Développeur et Directeur de la publication :</strong></p>
+        <p style="font-size: 18px; color: white; font-weight: bold; margin-bottom: 4px;">Yann Kerhervé</p>
+        <p style="font-family: 'DM Mono', monospace; font-size: 13px;">Quais Frissard, Le Havre, France</p>
+        <p style="margin-top: 15px; font-size: 13px; font-style: italic;">Projet indépendant conçu dans le cadre d'études supérieures maritimes, combinant expertise de navigation et ingénierie de données. Passionné par la mer comme la réalisationde projet innovants (Innovez !, Hydrocontest, Plugins Windy, C18LW...), j'ai souhaité m'aventurer vers le domaine de la météo pour mon mémoire de 5eme année à l'ENSM. </p>
+        
+        <div class="link-list">
+          <a href="mailto:ya.kerherve@gmail.com" class="btn-link">✉ ya.kerherve@gmail.com</a>
+          <a href="https://github.com/YannKerherve" target="_blank" class="btn-link">GitHub</a>
+          <a href="https://www.linkedin.com/in/yann-kerherv%C3%A9/" target="_blank" class="btn-link">LinkedIn</a>
+          <a href="https://www.instagram.com/yann_krhrv/?hl=fr" target="_blank" class="btn-link">Instagram</a>
+          <a href="https://community.windy.com/user/yann-kerherve" target="_blank" class="btn-link">Windy Community</a>
+        </div>
+      </div>
+    </section>
+
+    <section id="partenaires" class="section-block">
+      <div class="section-num">02 / Collaboration</div>
+      <h2 class="section-title">Partenaires de Confiance</h2>
+      <p>Le développement de ce modèle d'évaluation de notation météo n'aurait pu voir le jour sans le soutien institutionnel, académique et technique des entités et mentors suivants :</p>
+      
+      <div class="grid-cards">
+        <div class="logo-card">
+          <img class="logo-placeholder" src="ENSM.png" alt="Logo ENSM">
+          <p style="font-size: 14px; color:white; font-weight:600;">ENSM</p>
+          <p style="font-size: 12px; color:rgb(154, 154, 154);">École Nationale Supérieure Maritime</p>
+          <p style="font-size: 12px; var(--text-dim)">L'ENSM forme les officiers de la marine marchande Francaise.</p>
+        </div>
+        <div class="logo-card">
+          <div style="width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:20px;">GF</div>
+          <p style="font-size: 14px; color:white; font-weight:600;">Gilles Favennec</p>
+          <p style="font-size: 12px; color:rgb(154, 154, 154);">Enseignant de Météorologie, ENSM et Routeur Maritime</p>
+          <p style="font-size: 12px; var(--text-dim)">Tuteur de mémoire académique à l'ENSM, garant de la rigueur méthodologique du projet.</p>
+        </div>
+        <div class="logo-card">
+          <div style="width:50px; height:50px; border-radius:50%; background:rgba(255,255,255,0.1); display:flex; align-items:center; justify-content:center; font-size:20px;">🚢</div>
+          <p style="font-size: 14px; color:white; font-weight:600;">Tonton CMA</p>
+          <p style="font-size: 12px; color:rgb(154, 154, 154);">Commadant MVExemple, CMA CGM</p>
+          <p style="font-size: 12px; var(--text-dim)">Conseils, appuis logistiques et regard critique de terrain sur l'application maritime.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="credits" class="section-block">
+      <div class="section-num">03 / Crédits & Technologies</div>
+      <h2 class="section-title">Infrastructures & Outillage</h2>
+      <p>Conformément à la politique de transparence logicielle, voici l'écosystème technique utilisé pour générer, héberger et propulser l'architecture de WeatherScore :</p>
+      
+      <p><strong>Hébergement et Déploiement :</strong> Le présent site est propulsé et hébergé publiquement par la plateforme <strong>GitHub Pages</strong> (GitHub Inc., 88 Colin P. Kelly Jr. St, San Francisco, CA 94107, USA). L'attribution de l'URL et du routage DNS est gérée via <strong>Hoister</strong>. La connexion au compte est réalisée par <strong>Supabase</strong></p>
+      
+      <p><strong>Calcul & Algorithmes :</strong> L'intégralité du traitement algorithmique de notation, de la comparaison des modèles numériques de prévision de masse (NWP) et du calcul d'écarts quadratiques a été programmée et exécutée de manière indépendante par <strong>Yann Kerhervé</strong>.</p>
+      
+      <p><strong>Ingénierie de Développement :</strong></p>
+      <ul style="margin-left: 20px; color: var(--text-mid); font-size: 15px; display:flex; flex-direction:column; gap:8px;">
+        <li><strong>Environnement de code :</strong> Microsoft Visual Studio Code (VS Code).</li>
+        <li><strong>Assistance à la mise en forme :</strong> Modèles d'Intelligence Artificielle générative (Claude Code, ChatGPT, Gemini, GitHub Copilot) employés exclusivement pour l'optimisation des structures CSS/HTML et la reformulation sémantique des données informatives.</li>
+      </ul>
+    </section>
+
+    <section id="sources" class="section-block">
+      <div class="section-num">04 / Traçabilité</div>
+      <h2 class="section-title">Sources des Données</h2>
+      <p>Photos : Yann Kerhervé</p>
+      <p>Les calculs de scores de fidélité météo reposent sur l'agrégation, la lecture et l'analyse croisée de données publiques, issues des grands organismes mondiaux de prévisions et d'observations réelles. WeatherScore salue l'ouverture des données (Open Data) de :</p>
+      
+      <p><strong>Modèles Météorologiques & Océanographiques :</strong></p>
+      <div class="grid-cards" style="grid-template-columns: repeat(3, 1fr);">
+        <div class="logo-card" style="padding:15px;"><p style="color:white; font-size:13px; font-weight:bold;">Météo-France</p><span style="font-size:11px; color:var(--text-dim)">AROME / ARPEGE</span></div>
+        <div class="logo-card" style="padding:15px;"><p style="color:white; font-size:13px; font-weight:bold;">Shom</p><span style="font-size:11px; color:var(--text-dim)">Courants & Marées</span></div>
+        <div class="logo-card" style="padding:15px;"><p style="color:white; font-size:13px; font-weight:bold;">ECMWF (Europe)</p><span style="font-size:11px; color:var(--text-dim)">IFS / ECWAM</span></div>
+        <div class="logo-card" style="padding:15px;"><p style="color:white; font-size:13px; font-weight:bold;">NOAA / NCEP (USA)</p><span style="font-size:11px; color:var(--text-dim)">GFS / WW3 / HYCOM</span></div>
+        <div class="logo-card" style="padding:15px;"><p style="color:white; font-size:13px; font-weight:bold;">Met Office (UK)</p><span style="font-size:11px; color:var(--text-dim)">Unified Model</span></div>
+        <div class="logo-card" style="padding:15px;"><p style="color:white; font-size:13px; font-weight:bold;">Copernicus</p><span style="font-size:11px; color:var(--text-dim)">GLORYS Reanalysis</span></div>
+      </div>
+      
+      <p style="margin-top:20px;"><strong>Données d'Observations Réelles (Vérité Terrain) :</strong> Les infrastructures de contrôle s'appuient sur les réseaux de bouées ancrées et dérivantes mondiales (via les réseaux d'intégration types <i>LaBouée</i>, plateformes interorganismes), ainsi que sur les données altimétriques et de diffusiométrie des satellites actifs (ASCAT).</p>
+    </section>
+
+    <section id="privacy" class="section-block">
+      <div class="section-num">05 / Protection des Données</div>
+      <h2 class="section-title">Politique de Confidentialité & Cookies</h2>
+      <p>Conformément au <strong>Règlement Général sur la Protection des Données (RGPD)</strong> et à la <strong>Loi Informatique et Libertés</strong>, l'utilisation de vos informations respecte une politique stricte de souveraineté numérique :</p>
+      
+      <div class="law-quote">
+        « Les données de connexion et de consultation ne sont récoltées qu'à des fins strictement personnelles et internes de statistiques globales de fréquentation. Elles ne font l'objet d'aucune exploitation commerciale, revente, ou ciblage publicitaire. »
+      </div>
+      
+      <p><strong>Données de navigation & Cookies :</strong> Ce site utilise des cookies techniques de performance légers pour évaluer l'audience du site. Aucune donnée d'identification personnelle (nom, adresse, IP complète) n'est stockée de façon permanente.</p>
+      <p><strong>Absence d'historique de recherche :</strong> Les requêtes géographiques ou temporelles formulées via la carte ou l'interface de notation s'exécutent en direct et ne donnent lieu à <strong>aucun enregistrement ou traçage</strong> de vos zones de navigation d'intérêt dans une base de données tierce.</p>
+    </section>
+
+    <section id="warning" class="section-block">
+      <div class="section-num">06 / Clause Légale</div>
+      <h2 class="section-title">Limitation de Responsabilité</h2>
+      <p>L'utilisation de WeatherScore implique l'acceptation pleine et entière des présentes clauses limitatives de responsabilité, indispensables à la mise à disposition gratuite de ce service d'aide à la décision :</p>
+      
+      <p><strong>Aide à la navigation non-officielle :</strong> Les notations, classements et indices de performance calculés par WeatherScore sont fournis <strong>à titre purement indicatif</strong>. Ils sont le fruit d'une méthodologie de calcul mathématique propriétaire basée sur l'historique de faits réels constatés à posteriori. Ils ne sauraient en aucun cas remplacer les bulletins officiels émis par les services météorologiques étatiques ou les documents de sécurité de bord réglementaires exigés par les divisions de sécurité (Division 240, etc.).</p>
+
+      <p><strong>Inaltérabilité des faits mathématiques :</strong> Les notations attribuées aux modèles numériques découlent de processus purement automatisés comparant des prévisions à des données réelles physiques. Ces notes sont objectives, factuelles et <strong>ne peuvent en aucun cas être modifiées, altérées ou négociées</strong> sur demande extérieure.</p>
+
+      <div class="law-quote" style="border-left-color: var(--warm)">
+        <strong>Exonération de responsabilité :</strong> Le développeur (Yann Kerhervé) ne pourra en aucun cas être tenu responsable de tout dommage direct ou indirect (perte de temps, avarie matérielle, déroutement, accident de mer ou perte d'exploitation lié à l'usage des API, des fichiers GRIB ou de l'interface cartographique). L'utilisateur navigue et choisit ses modèles de routage sous sa seule et entière responsabilité, à ses risques et périls, en toute connaissance de cause.
+      </div>
+    </section>
+
+  </main>
+</div>
+
+<footer style="padding: 40px; text-align: center; border-top: 1px solid var(--border); font-family: 'DM Mono', monospace; font-size: 11px; color: var(--text-dim);">
+  © 2026 WeatherScore — ENSM Le Havre — Yann Kerhervé. Tous droits réservés.
+</footer>
+
+</body>
+</html>

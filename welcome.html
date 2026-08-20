@@ -1,0 +1,467 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Espace Personnel — WeatherScore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" type="image/x-icon" href="facion.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ─── BASE & COULEURS HÉRITÉES ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #050810;
+  --signal: #00d4ff;
+  --signal2: #0066ff;
+  --warm: #ff6b35;
+  --green: #00ff88;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-dim: rgba(255, 255, 255, 0.5);
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+body {
+  background-color: var(--ink);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+.container {
+  max-w: 1150px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+/* ─── NAVIGATION COMMUNE HEADER ─── */
+nav.top-nav {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-b: 1px solid var(--border);
+  padding-bottom: 20px;
+  margin-bottom: 40px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+nav.top-nav .nav-left {
+  display: flex;
+  gap: 20px;
+}
+
+nav.top-nav a {
+  color: var(--text-dim);
+  text-decoration: none;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  transition: color 0.2s;
+}
+
+nav.top-nav a:hover, nav.top-nav a.active {
+  color: var(--signal);
+}
+
+.brand-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 26px;
+  letter-spacing: 1px;
+}
+.brand-title span { color: var(--signal); }
+
+/* ─── GRID GLOBAL ─── */
+.welcome-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 35px;
+}
+@media (min-width: 900px) {
+  .welcome-grid { grid-template-columns: 360px 1fr; }
+}
+
+/* ─── PANELS & BLOCS ─── */
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 30px;
+  background: rgba(255, 255, 255, 0.01);
+  position: relative;
+}
+
+.panel-admin {
+  border-color: rgba(255, 107, 53, 0.25);
+}
+
+.panel-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.admin-tag {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--warm);
+  border: 1px solid rgba(255, 107, 53, 0.3);
+  padding: 2px 6px;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+/* ─── INFOS PERSONNELLES (PROFIL) ─── */
+.profile-card {
+  text-align: center;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 25px;
+  margin-bottom: 25px;
+}
+
+.avatar-wrapper {
+  width: 90px;
+  height: 90px;
+  border-radius: 50%;
+  border: 2px solid var(--signal);
+  margin: 0 auto 15px auto;
+  overflow: hidden;
+  background: #0f172a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.avatar-wrapper svg {
+  width: 50px;
+  height: 50px;
+  fill: var(--text-dim);
+}
+
+.profile-name {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 0.5px;
+  line-height: 1.2;
+}
+
+.profile-rank {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--signal);
+  text-transform: uppercase;
+  margin-top: 4px;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.info-item {
+  display: flex;
+  flex-direction: column;
+}
+
+.info-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.info-value {
+  font-size: 14px;
+  color: #ffffff;
+  font-weight: 400;
+  margin-top: 2px;
+}
+
+/* ─── APPLICATIONS & NAVIGATION COMPTE ─── */
+.apps-layout {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 600px) {
+  .apps-layout { grid-template-columns: 1fr 1fr; }
+}
+
+.app-btn {
+  display: flex;
+  flex-direction: column;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: rgba(255,255,255,0.005);
+  text-decoration: none;
+  color: #ffffff;
+  transition: all 0.2s ease;
+}
+
+.app-btn:hover {
+  border-color: var(--signal);
+  background: rgba(0, 212, 255, 0.02);
+  transform: translateY(-1px);
+}
+
+.app-btn.admin-btn:hover {
+  border-color: var(--warm);
+  background: rgba(255, 107, 53, 0.02);
+}
+
+.app-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+}
+
+.app-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 22px;
+  letter-spacing: 0.5px;
+  margin-top: 5px;
+}
+
+/* ─── COMPOSANTS SECONDAIRES (API & DEV) ─── */
+.code-inline {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: rgba(0,0,0,0.3);
+  border: 1px solid var(--border);
+  padding: 10px 14px;
+  border-radius: 4px;
+  color: var(--green);
+  word-break: break-all;
+  margin-top: 8px;
+}
+
+.dev-text {
+  font-size: 13px;
+  color: var(--text-dim);
+  font-weight: 300;
+  margin-bottom: 15px;
+}
+
+.btn-action {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 10px 18px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.2s;
+}
+.btn-action:hover { border-color: var(--signal); }
+
+/* ─── SITEMAP / FOOTER LINKS ─── */
+.footer-sitemap {
+  border-top: 1px solid var(--border);
+  margin-top: 60px;
+  padding-top: 40px;
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 30px;
+}
+@media (min-width: 750px) {
+  .footer-sitemap { grid-template-columns: repeat(4, 1fr); }
+}
+
+.sitemap-col h4 {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #ffffff;
+  margin-bottom: 15px;
+  letter-spacing: 1px;
+}
+
+.sitemap-col ul { list-style: none; }
+.sitemap-col ul li { margin-bottom: 8px; }
+.sitemap-col ul li a {
+  font-size: 12px;
+  color: var(--text-dim);
+  text-decoration: none;
+  transition: color 0.1s;
+}
+.sitemap-col ul li a:hover { color: var(--signal); }
+
+.legal-credits {
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: rgba(255,255,255,0.2);
+  margin-top: 50px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="welcome-grid">
+    
+    <div class="identity-side">
+      <div class="panel">
+        <div class="profile-card">
+          <div class="avatar-wrapper">
+            <svg viewBox="0 0 24 24">
+              <path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5-4-8-4z"/>
+            </svg>
+          </div>
+          <div class="profile-name">Yann Kerhervé</div>
+          <div class="profile-rank">Dévellopeur</div>
+        </div>
+
+        <div class="info-list">
+          <div class="info-item">
+            <span class="info-label">Compagnie Maritime</span>
+            <span class="info-value">ENSM / CMA CGM</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Navire Actuel</span>
+            <span class="info-value">Rivoli</span>
+          </div>
+          <div class="info-item">
+            <span class="info-label">Adresse Email</span>
+            <span class="info-value" style="color: var(--signal)">ya.kerherve@gmail.com</span>
+          </div>
+          <div><a href="mailto:ya.kerherve@gmail.com" class="btn-action" style="margin-top: 10px; align-self: flex-start;">Modifier ces informations</a> <a href="#" class="btn-action" style="margin-top: 10px; align-self: flex-start;">Se déconnecter</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="control-main" style="display: flex; flex-direction: column; gap: 30px;">
+      
+      <div>
+        <div class="info-label" style="margin-bottom: 12px; letter-spacing: 2px;">Services &amp; Modules système</div>
+        <div class="apps-layout">
+          
+          <a href="marine-weather-model.2.0.html" class="app-btn">
+            <span class="app-meta">Interactive map</span>
+            <span class="app-title">Carte WeatherScore</span>
+          </a>
+
+          <a href="/api/" class="app-btn">
+            <span class="app-meta">Data Pipeline</span>
+            <span class="app-title">Documentation API</span>
+          </a>
+
+          <a href="https://www.windy.com/plugin/wscore/" class="app-btn">
+            <!---<img src="windy.png" width="10">--->
+            <span class="app-meta">External Dynamic Map</span>
+            <span class="app-title">Windy Integration</span>
+          </a>
+
+         <a href="marine-weather-model.2.0.html" class="app-btn">
+            <span class="app-meta">Dowload to your apps</span>
+            <span class="app-title">Adrena, TimeZero, XyGrib, SimSail, Bon Voyage...</span>
+          </a>
+
+          <a href="marine-weather-model.2.0.html" class="app-btn">
+            <span class="app-meta">GRIBS</span>
+            <span class="app-title">téléchargez les Gribs corrigés, multi-modèles...</span>
+          </a>
+
+          <a href="grib-explorer.html" class="app-btn admin-btn" style="border-color: rgba(255, 107, 53, 0.15)">
+            <span class="app-meta" style="color: var(--warm)">Système Admin <right><span class="admin-tag">Privilèges Admin</span></right></span>
+            <span class="app-title">Grib Explorer</span>
+          </a>
+
+        </div>
+      </div>
+
+      <div class="panel panel-admin">
+        <div class="panel-title">
+          Contrôle des Infrastructures 
+          <span class="admin-tag">Privilèges Admin</span>
+        </div>
+        <p class="dev-text" style="margin-bottom: 20px;">Accès restreint à la gestion globale des flottes d'utilisateurs connectés et aux analyses de performances des requêtes multimodèles.</p>
+        <a href="stats.html" class="btn-action" style="color: var(--warm); border-color: rgba(255, 107, 53, 0.3)">Liste Utilisateurs &amp; Stats</a>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr; gap: 30px; @media (min-width:700px) { grid-template-columns: 1fr 1fr; }">
+        
+        <div class="panel" style="flex: 1;">
+          <div class="info-label">Informations de liaison</div>
+          <div class="panel-title" style="margin-top: 5px; margin-bottom: 8px;">Votre Clé API Actuelle</div>
+          <div class="code-inline">ws_live_4f8a92b3c7e10a9f</div>
+        </div>
+
+        <div class="panel" style="flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+          <div>
+            <div class="info-label">Support Technique</div>
+            <div class="panel-title" style="margin-top: 5px; margin-bottom: 8px;">Support &amp; Intégration</div>
+            <p class="dev-text">Un problème de déploiement réseau sur vos serveurs embarqués ? Alertez l'équipe.</p>
+          </div>
+          <a href="mailto:ya.kerherve@gmail.com" class="btn-action" style="margin-top: 10px; align-self: flex-start;">Contacter le développeur</a>
+        </div>
+
+      </div>
+
+    </div>
+  </div>
+
+  <footer class="footer-sitemap">
+    <div class="sitemap-col">
+      <h4>Application</h4>
+      <ul>
+        <li><a href="1dex.html">Home</a></li>
+        <li><a href="marine-weather-model.2.0.html">Product</a></li>
+        <li><a href="marine-weather-model.2.0.html">Model Map</a></li>
+        <li><a href="marine-weather-model.2.0.html">Live Rating</a></li>
+        <li><a href="marine-weather-model.2.0.html">Export Core</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <h4>Developer</h4>
+      <ul>
+        <li><a href="/api/">API Access</a></li>
+        <li><a href="/api/">Resources</a></li>
+        <li><a href="/api/">Documentation</a></li>
+        <li><a href="tutorial.html">Tutorial</a></li>
+        <li><a href="methodology.html">Methodology</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <h4>Structure</h4>
+      <ul>
+        <li><a href="company.html">Company</a></li>
+        <li><a href="company.html">Partners</a></li>
+        <li><a href="company.html">Credits &amp; ENSM</a></li>
+        <li><a href="company.html">Contact</a></li>
+      </ul>
+    </div>
+    <div class="sitemap-col">
+      <h4>Privacy &amp; Rules</h4>
+      <ul>
+        <li><a href="company.html">Privacy Policy</a></li>
+        <li><a href="company.html">Legal Mentions</a></li>
+        <li><a href="company.html">Exonération</a></li>
+      </ul>
+    </div>
+  </footer>
+
+  <div class="legal-credits">
+    © 2026 WeatherScore — ENSM Le Havre — Yann Kerhervé
+  </div>
+
+</div>
+
+</body>
+</html>

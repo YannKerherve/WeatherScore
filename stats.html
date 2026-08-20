@@ -1,0 +1,1009 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Infrastructure & Stats — WeatherScore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" type="image/x-icon" href="facion.png">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink:       #050810;
+  --ink2:      #080c1a;
+  --signal:    #00d4ff;
+  --signal2:   #0066ff;
+  --warm:      #ff6b35;
+  --green:     #00ff88;
+  --amber:     #ffb340;
+  --red:       #ff4455;
+  --border:    rgba(255,255,255,0.07);
+  --border2:   rgba(255,255,255,0.04);
+  --text-dim:  rgba(255,255,255,0.45);
+  --text-mid:  rgba(255,255,255,0.75);
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+  --font-disp: 'Bebas Neue', sans-serif;
+}
+
+html, body { height: 100%; }
+body {
+  background: var(--ink);
+  color: #fff;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── SCAN LINE ── */
+body::before {
+  content:'';
+  position:fixed;
+  inset:0;
+  background: repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.025) 2px, rgba(0,0,0,0.025) 4px);
+  pointer-events: none;
+  z-index: 1000;
+}
+
+/* ── LAYOUT ── */
+main { flex: 1; padding: 36px 28px 20px; max-width: 1400px; margin: 0 auto; width: 100%; }
+
+/* ── PAGE HEADER ── */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  margin-bottom: 32px;
+  padding-bottom: 24px;
+  border-bottom: 1px solid var(--border);
+}
+.brand-eyebrow {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--warm);
+  margin-bottom: 8px;
+}
+.page-title {
+  font-family: var(--font-disp);
+  font-size: 48px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+.page-title span { color: var(--signal); }
+.header-right { display: flex; align-items: center; gap: 14px; }
+.pulse-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 8px var(--green);
+  animation: blink 2s ease-in-out infinite;
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.live-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--green);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+#clock {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.btn-back {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: #fff;
+  text-decoration: none;
+  padding: 9px 18px;
+  border: 1px solid var(--border);
+  border-radius: 3px;
+  transition: border-color .2s;
+}
+.btn-back:hover { border-color: var(--warm); }
+
+/* ── SECTION LABEL ── */
+.section-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+
+/* ── GRID HELPERS ── */
+.grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
+.grid-3 { display: grid; grid-template-columns: repeat(3,1fr); gap: 14px; margin-bottom: 28px; }
+.grid-2 { display: grid; grid-template-columns: repeat(2,1fr); gap: 14px; margin-bottom: 28px; }
+@media(max-width:900px) {
+  .grid-4,.grid-3 { grid-template-columns: repeat(2,1fr); }
+}
+@media(max-width:560px) {
+  .grid-4,.grid-3,.grid-2 { grid-template-columns: 1fr; }
+}
+
+/* ── CARD BASE ── */
+.card {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  background: rgba(255,255,255,0.012);
+  padding: 20px;
+  position: relative;
+  overflow: hidden;
+}
+.card::before {
+  content:'';
+  position:absolute;
+  top:0; left:0; right:0;
+  height:2px;
+  opacity:0;
+  transition: opacity .3s;
+}
+.card:hover::before { opacity:1; }
+.card.accent-signal::before { background: linear-gradient(90deg, transparent, var(--signal), transparent); }
+.card.accent-green::before  { background: linear-gradient(90deg, transparent, var(--green),  transparent); }
+.card.accent-warm::before   { background: linear-gradient(90deg, transparent, var(--warm),   transparent); }
+.card.accent-amber::before  { background: linear-gradient(90deg, transparent, var(--amber),  transparent); }
+
+.card-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  color: var(--text-dim);
+  margin-bottom: 8px;
+}
+.card-value {
+  font-family: var(--font-disp);
+  font-size: 40px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.card-sub {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: var(--font-mono);
+}
+
+/* ── GAUGE / PROGRESS BAR ── */
+.gauge-wrap { margin-top: 12px; }
+.gauge-bar {
+  height: 3px;
+  background: rgba(255,255,255,0.07);
+  border-radius: 2px;
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+.gauge-fill {
+  height: 100%;
+  border-radius: 2px;
+  transition: width 1s ease;
+}
+.gauge-labels {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: var(--text-dim);
+}
+
+/* ── MINI SPARKLINE (SVG) ── */
+.sparkline { display: block; width: 100%; height: 32px; margin-top: 10px; opacity: .7; }
+
+/* ── STATUS PILL ── */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  padding: 3px 9px;
+  border-radius: 2px;
+}
+.pill .dot { width:5px; height:5px; border-radius:50%; }
+.pill-ok   { background: rgba(0,255,136,.1); color: var(--green); }
+.pill-ok .dot   { background: var(--green); box-shadow:0 0 4px var(--green); }
+.pill-warn { background: rgba(255,179,64,.1); color: var(--amber); }
+.pill-warn .dot { background: var(--amber); }
+.pill-err  { background: rgba(255,68,85,.1);  color: var(--red); }
+.pill-err .dot  { background: var(--red); }
+
+/* ── PIPELINE STEPS ── */
+.pipeline {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+.pipe-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border2);
+  position: relative;
+}
+.pipe-step:last-child { border-bottom: none; }
+.pipe-icon {
+  width: 28px;
+  height: 28px;
+  border-radius: 3px;
+  border: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 12px;
+}
+.pipe-icon.ok    { border-color: rgba(0,255,136,.3);  background: rgba(0,255,136,.07);  color: var(--green); }
+.pipe-icon.run   { border-color: rgba(0,212,255,.3);  background: rgba(0,212,255,.07);  color: var(--signal);
+                   animation: glow-pulse 1.4s ease-in-out infinite; }
+.pipe-icon.idle  { border-color: var(--border); color: var(--text-dim); }
+.pipe-icon.err   { border-color: rgba(255,68,85,.3);  background: rgba(255,68,85,.07);  color: var(--red); }
+@keyframes glow-pulse {
+  0%,100%{ box-shadow: 0 0 0 rgba(0,212,255,0); }
+  50%    { box-shadow: 0 0 10px rgba(0,212,255,.3); }
+}
+.pipe-info { flex: 1; min-width: 0; }
+.pipe-name {
+  font-size: 13px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 2px;
+}
+.pipe-desc {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pipe-meta {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: right;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+/* ── SERVICE ROW ── */
+.service-list { display: flex; flex-direction: column; gap: 0; }
+.service-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 13px 0;
+  border-bottom: 1px solid var(--border2);
+}
+.service-row:last-child { border-bottom: none; }
+.svc-left { display: flex; flex-direction: column; gap: 2px; }
+.svc-name { font-size: 13px; font-weight: 500; }
+.svc-url  { font-family: var(--font-mono); font-size: 10px; color: var(--text-dim); }
+.svc-latency {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-dim);
+  text-align: right;
+}
+.svc-latency strong { color: var(--green); }
+
+/* ── TABLE ── */
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 5px;
+  overflow: hidden;
+  margin-bottom: 28px;
+}
+.panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 22px;
+  border-bottom: 1px solid var(--border);
+}
+.panel-title {
+  font-family: var(--font-disp);
+  font-size: 22px;
+  letter-spacing: .5px;
+}
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-family: var(--font-mono); font-size: 11.5px; }
+thead th {
+  font-size: 9.5px;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  color: var(--text-dim);
+  padding: 12px 20px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+  background: rgba(255,255,255,.01);
+  white-space: nowrap;
+}
+tbody td {
+  padding: 14px 20px;
+  border-bottom: 1px solid var(--border2);
+  color: var(--text-mid);
+  vertical-align: middle;
+}
+tbody tr:hover td { background: rgba(255,255,255,.015); }
+tbody tr:last-child td { border-bottom: none; }
+.user-full { font-family: var(--font-sans); font-size: 13px; font-weight: 500; color:#fff; }
+.user-email { color: var(--signal); }
+.badge {
+  font-size: 9.5px;
+  border: 1px solid rgba(0,212,255,.25);
+  color: var(--signal);
+  padding: 2px 7px;
+  border-radius: 2px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.badge.admin { border-color: rgba(255,107,53,.3); color: var(--warm); }
+.avatar-circle {
+  width: 28px; height: 28px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 11px;
+  font-weight: 700;
+  font-family: var(--font-sans);
+  flex-shrink: 0;
+  background: linear-gradient(135deg, var(--signal2), var(--signal));
+  color: #fff;
+  margin-right: 10px;
+}
+.user-cell { display: flex; align-items: center; }
+
+.status-dot {
+  display: inline-block;
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: var(--green);
+  box-shadow: 0 0 4px var(--green);
+  margin-right: 5px;
+}
+
+/* ── LOADING / ERROR ── */
+.state-msg {
+  padding: 36px;
+  text-align: center;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+.state-err { color: var(--warm); }
+
+/* ── BOTTOM NAV BAR (identique marine-weather-model.html) ── */
+#bottom-bar {
+  height: 40px;
+  background: rgba(5,8,16,.98);
+  border-top: 1px solid rgba(0,212,255,.18);
+  display: flex;
+  align-items: center;
+  padding: 0 14px;
+  gap: 4px;
+  flex-shrink: 0;
+  z-index: 100;
+}
+.bar-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 11px;
+  background: rgba(255,255,255,.03);
+  border: 1px solid rgba(255,255,255,.08);
+  border-radius: 3px;
+  color: rgba(255,255,255,.5);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  cursor: pointer;
+  text-decoration: none;
+  transition: border-color .15s, color .15s;
+  white-space: nowrap;
+}
+.bar-btn:hover { border-color: rgba(0,212,255,.35); color: rgba(255,255,255,.85); }
+.bar-btn.active { background: rgba(0,212,255,.08); border-color: rgba(0,212,255,.4); color: var(--signal); }
+.bar-sep { width:1px; height:20px; background:rgba(255,255,255,.07); margin:0 4px; flex-shrink:0; }
+.bar-right { margin-left:auto; display:flex; align-items:center; gap:6px; }
+.bar-version { font-family: var(--font-mono); font-size:9px; color:rgba(255,255,255,.25); }
+</style>
+</head>
+<body>
+
+<main>
+
+  <!-- ── PAGE HEADER ── -->
+  <div class="page-header">
+    <div>
+      <div class="brand-eyebrow">// Infrastructure &amp; Surveillance</div>
+      <h1 class="page-title">Statut <span>Système</span></h1>
+    </div>
+    <div class="header-right">
+      <div class="pulse-dot"></div>
+      <div class="live-label">Live</div>
+      <div id="clock"></div>
+      <a href="welcome.html" class="btn-back">← Dashboard</a>
+    </div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SECTION 1 — MACHINE LOCALE
+  ══════════════════════════════════════════ -->
+  <div class="section-label">Machine locale — serveur de calcul</div>
+
+  <div class="grid-4">
+
+    <div class="card accent-warm">
+      <div class="card-label">CPU Temp.</div>
+      <div class="card-value" id="cpu-temp" style="color:var(--amber)">—</div>
+      <div class="card-sub" id="cpu-sub">Intel Core i9 · 12 cœurs</div>
+      <div class="gauge-wrap">
+        <div class="gauge-bar"><div class="gauge-fill" id="cpu-bar" style="background:var(--amber); width:0%"></div></div>
+        <div class="gauge-labels"><span>0°C</span><span>100°C</span></div>
+      </div>
+      <svg class="sparkline" id="spark-cpu" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
+        <polyline id="spark-cpu-line" stroke="var(--amber)" stroke-width="1.2"/>
+      </svg>
+    </div>
+
+    <div class="card accent-signal">
+      <div class="card-label">RAM utilisée</div>
+      <div class="card-value" id="ram-val" style="color:var(--signal)">—</div>
+      <div class="card-sub" id="ram-sub">/ 32 Go DDR5</div>
+      <div class="gauge-wrap">
+        <div class="gauge-bar"><div class="gauge-fill" id="ram-bar" style="background:var(--signal); width:0%"></div></div>
+        <div class="gauge-labels"><span>0</span><span>32 Go</span></div>
+      </div>
+      <svg class="sparkline" id="spark-ram" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
+        <polyline id="spark-ram-line" stroke="var(--signal)" stroke-width="1.2"/>
+      </svg>
+    </div>
+
+    <div class="card accent-green">
+      <div class="card-label">Disque GRIB</div>
+      <div class="card-value" id="disk-val" style="color:var(--green)">—</div>
+      <div class="card-sub" id="disk-sub">SSD 2 To · data_marine/</div>
+      <div class="gauge-wrap">
+        <div class="gauge-bar"><div class="gauge-fill" id="disk-bar" style="background:var(--green); width:0%"></div></div>
+        <div class="gauge-labels"><span>0</span><span>2 To</span></div>
+      </div>
+      <svg class="sparkline" id="spark-disk" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
+        <polyline id="spark-disk-line" stroke="var(--green)" stroke-width="1.2"/>
+      </svg>
+    </div>
+
+    <div class="card accent-signal">
+      <div class="card-label">Débit réseau</div>
+      <div class="card-value" id="net-val" style="color:var(--signal); font-size:32px">—</div>
+      <div class="card-sub" id="net-sub">↓ dl · ↑ ul</div>
+      <div class="gauge-wrap">
+        <div class="gauge-bar"><div class="gauge-fill" id="net-bar" style="background: linear-gradient(90deg,var(--signal2),var(--signal)); width:0%"></div></div>
+        <div class="gauge-labels"><span>0</span><span>1 Gbit/s</span></div>
+      </div>
+      <svg class="sparkline" id="spark-net" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
+        <polyline id="spark-net-line" stroke="var(--signal)" stroke-width="1.2"/>
+      </svg>
+    </div>
+
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SECTION 2 — PIPELINE DE DONNÉES
+  ══════════════════════════════════════════ -->
+  <div class="section-label">Pipeline — téléchargement · calcul · envoi</div>
+
+  <div class="grid-2">
+
+    <!-- ÉTAT DES SOURCES (dernière exécution) -->
+    <div class="card accent-signal" style="padding:0">
+      <div class="panel-head" style="border-bottom:1px solid var(--border2); padding:16px 20px;">
+        <div class="panel-title" style="font-size:18px;">Téléchargements GRIB</div>
+        <span id="last-run-label" class="pill pill-ok"><span class="dot"></span>Dernière exécution il y a <span id="last-run-ago" style="margin-left:3px">—</span></span>
+      </div>
+      <div class="pipeline" id="pipeline-grib" style="padding:0 20px;"></div>
+    </div>
+
+    <!-- OBSERVATIONS -->
+    <div class="card accent-green" style="padding:0">
+      <div class="panel-head" style="border-bottom:1px solid var(--border2); padding:16px 20px;">
+        <div class="panel-title" style="font-size:18px;">Observations in-situ</div>
+        <span class="pill pill-ok"><span class="dot"></span>NRT</span>
+      </div>
+      <div class="pipeline" id="pipeline-obs" style="padding:0 20px;"></div>
+    </div>
+
+  </div>
+
+  <!-- CALCUL C + PUSH -->
+  <div class="card accent-amber" style="margin-bottom:28px; padding:0">
+    <div class="panel-head" style="border-bottom:1px solid var(--border2); padding:16px 22px;">
+      <div class="panel-title" style="font-size:18px;">Calcul &amp; Envoi</div>
+      <span id="calc-status-pill" class="pill pill-ok"><span class="dot"></span>Idle</span>
+    </div>
+    <div class="pipeline" id="pipeline-calc" style="padding:0 22px;"></div>
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SECTION 3 — SERVICES EXTERNES
+  ══════════════════════════════════════════ -->
+  <div class="section-label">Services externes</div>
+
+  <div class="grid-3" style="margin-bottom:28px">
+
+    <div class="card accent-signal" style="padding:0">
+      <div style="padding:16px 20px 0;">
+        <div class="card-label" style="margin-bottom:12px">État des services</div>
+      </div>
+      <div class="service-list" style="padding:0 20px 8px;" id="service-list"></div>
+    </div>
+
+    <!-- GitHub derniers commits -->
+    <div class="card accent-warm" style="padding:0">
+      <div style="padding:16px 20px 0;">
+        <div class="card-label" style="margin-bottom:12px">GitHub — derniers commits</div>
+      </div>
+      <div class="pipeline" id="git-log" style="padding:0 20px;"></div>
+    </div>
+
+    <!-- Résumé dernière exécution sources.py -->
+    <div class="card accent-green" style="padding:0">
+      <div style="padding:16px 20px 0">
+        <div class="card-label" style="margin-bottom:12px">Résumé sources.py</div>
+      </div>
+      <div id="sources-summary" style="padding:0 20px 12px; display:flex; flex-direction:column; gap:8px;"></div>
+    </div>
+
+  </div>
+
+
+  <!-- ══════════════════════════════════════════
+       SECTION 4 — UTILISATEURS (Supabase)
+  ══════════════════════════════════════════ -->
+  <div class="section-label">Utilisateurs enregistrés</div>
+
+  <div class="grid-4" style="margin-bottom:20px">
+    <div class="card accent-signal">
+      <div class="card-label">Total comptes</div>
+      <div class="card-value" id="total-users" style="color:var(--signal)">—</div>
+      <div class="card-sub">inscrits sur la plateforme</div>
+    </div>
+    <div class="card accent-green">
+      <div class="card-label">Commandants</div>
+      <div class="card-value" id="total-captains" style="color:var(--green)">—</div>
+      <div class="card-sub">grade capitaine / commandant</div>
+    </div>
+    <div class="card accent-warm">
+      <div class="card-label">Compagnies</div>
+      <div class="card-value" id="total-companies" style="color:var(--warm)">—</div>
+      <div class="card-sub">armateurs distincts</div>
+    </div>
+    <div class="card accent-amber">
+      <div class="card-label">Admins</div>
+      <div class="card-value" id="total-admins" style="color:var(--amber)">—</div>
+      <div class="card-sub">avec accès infrastructure</div>
+    </div>
+  </div>
+
+  <div class="panel" style="margin-bottom:36px">
+    <div class="panel-head">
+      <div class="panel-title">Base de données utilisateurs <span style="color:var(--signal); font-size:16px;">(Supabase)</span></div>
+      <span class="pill pill-ok" id="db-status-pill"><span class="dot"></span>Connecté</span>
+    </div>
+    <div class="table-wrap">
+      <div id="users-loading" class="state-msg">Connexion sécurisée Supabase…</div>
+      <table id="users-table" style="display:none">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Navire</th>
+            <th>Compagnie</th>
+            <th>Grade / Position</th>
+            <th>Email</th>
+            <th>Statut</th>
+            <th>Inscrit le</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── BOTTOM NAV BAR ── -->
+<nav id="bottom-bar">
+  <a href="welcome.html" class="bar-btn">⌂ Home</a>
+  <div class="bar-sep"></div>
+  <a href="map.html"     class="bar-btn">⊕ Model Map</a>
+  <a href="live.html"    class="bar-btn">◎ Live Rating</a>
+  <a href="export.html"  class="bar-btn">↗ Export</a>
+  <a href="api.html"     class="bar-btn">{ } API</a>
+  <div class="bar-sep"></div>
+  <a href="docs.html"        class="bar-btn">Documentation</a>
+  <a href="methodology.html" class="bar-btn">Methodology</a>
+  <div class="bar-sep"></div>
+  <a href="users.html"    class="bar-btn active">Admin · Users</a>
+  <a href="admin.html"    class="bar-btn active">Admin · Stats</a>
+  <div class="bar-right">
+    <a href="contact.html"  class="bar-btn">Contact</a>
+    <a href="privacy.html"  class="bar-btn">Privacy</a>
+    <div class="bar-sep"></div>
+    <div class="bar-version">WeatherScore v0.2</div>
+  </div>
+</nav>
+
+<script>
+// ═══════════════════════════════════════════════════
+// CONFIG SUPABASE — remplacer par vos credentials
+// ═══════════════════════════════════════════════════
+const SUPABASE_URL     = 'https://YOUR_PROJECT.supabase.co';
+const SUPABASE_ANON_KEY= 'YOUR_ANON_KEY';
+const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+// ═══════════════════════════════════════════════════
+// HORLOGE
+// ═══════════════════════════════════════════════════
+function updateClock() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toISOString().replace('T',' ').slice(0,19) + ' UTC';
+}
+updateClock(); setInterval(updateClock, 1000);
+
+// ═══════════════════════════════════════════════════
+// DONNÉES SYSTÈME SIMULÉES
+// (remplacer par des appels à une API locale Python
+//  type Flask/FastAPI qui lit /proc/cpuinfo, psutil…)
+// ═══════════════════════════════════════════════════
+const SYSTEM_MOCK = {
+  cpuTemp:    67,   // °C
+  cpuMax:     100,
+  ramUsed:    18.4, // Go
+  ramTotal:   32,
+  diskUsed:   312,  // Go
+  diskTotal:  2000,
+  dlMbps:     84.2,
+  ulMbps:     21.5,
+  maxMbps:    1000,
+};
+
+const sparkData = { cpu:[], ram:[], disk:[], net:[] };
+
+function populateSpark(id, pts, color) {
+  const n = pts.length;
+  if (n < 2) return;
+  const W=120, H=32, pad=2;
+  const xStep = (W-pad*2) / (n-1);
+  const min = Math.min(...pts);
+  const max = Math.max(...pts) || 1;
+  const points = pts.map((v,i) =>
+    `${(pad + i*xStep).toFixed(1)},${(H - pad - (v-min)/(max-min+.001)*(H-pad*2)).toFixed(1)}`
+  ).join(' ');
+  document.getElementById(id).setAttribute('points', points);
+}
+
+function renderSystemCards() {
+  const s = SYSTEM_MOCK;
+  // CPU
+  const cpuPct = s.cpuTemp / s.cpuMax * 100;
+  document.getElementById('cpu-temp').textContent = s.cpuTemp + '°C';
+  document.getElementById('cpu-bar').style.width = cpuPct + '%';
+  document.getElementById('cpu-bar').style.background =
+    s.cpuTemp > 80 ? 'var(--red)' : s.cpuTemp > 65 ? 'var(--amber)' : 'var(--green)';
+
+  // RAM
+  const ramPct = s.ramUsed / s.ramTotal * 100;
+  document.getElementById('ram-val').textContent = s.ramUsed + ' Go';
+  document.getElementById('ram-sub').textContent = '/ ' + s.ramTotal + ' Go DDR5 · ' + ramPct.toFixed(0) + '%';
+  document.getElementById('ram-bar').style.width = ramPct + '%';
+
+  // Disk
+  const diskPct = s.diskUsed / s.diskTotal * 100;
+  document.getElementById('disk-val').textContent = (s.diskUsed >= 1000 ? (s.diskUsed/1000).toFixed(1)+' To' : s.diskUsed+' Go');
+  document.getElementById('disk-sub').textContent = 'SSD 2 To · ' + diskPct.toFixed(1) + '% utilisé';
+  document.getElementById('disk-bar').style.width = diskPct + '%';
+
+  // Network
+  document.getElementById('net-val').textContent = s.dlMbps + ' Mb/s';
+  document.getElementById('net-sub').textContent = '↓ ' + s.dlMbps + ' Mb/s  ·  ↑ ' + s.ulMbps + ' Mb/s';
+  document.getElementById('net-bar').style.width = (s.dlMbps / s.maxMbps * 100) + '%';
+}
+
+function tickSparklines() {
+  const s = SYSTEM_MOCK;
+  const drift = v => +(v + (Math.random()-.5)*3).toFixed(1);
+  SYSTEM_MOCK.cpuTemp = Math.min(95, Math.max(40, drift(s.cpuTemp)));
+  SYSTEM_MOCK.ramUsed = Math.min(31, Math.max(4, drift(s.ramUsed)));
+  SYSTEM_MOCK.dlMbps  = Math.min(980, Math.max(5, drift(s.dlMbps)));
+
+  sparkData.cpu.push(SYSTEM_MOCK.cpuTemp);
+  sparkData.ram.push(SYSTEM_MOCK.ramUsed);
+  sparkData.net.push(SYSTEM_MOCK.dlMbps);
+  sparkData.disk.push(SYSTEM_MOCK.diskUsed + Math.random()*2);
+  if (sparkData.cpu.length > 40) { sparkData.cpu.shift(); sparkData.ram.shift(); sparkData.net.shift(); sparkData.disk.shift(); }
+
+  populateSpark('spark-cpu-line',  sparkData.cpu,  'var(--amber)');
+  populateSpark('spark-ram-line',  sparkData.ram,  'var(--signal)');
+  populateSpark('spark-net-line',  sparkData.net,  'var(--signal)');
+  populateSpark('spark-disk-line', sparkData.disk, 'var(--green)');
+
+  renderSystemCards();
+}
+// Premier tick + remplissage historique simulé
+for(let i=0;i<35;i++){
+  SYSTEM_MOCK.cpuTemp = Math.min(95,Math.max(40, SYSTEM_MOCK.cpuTemp+(Math.random()-.5)*4));
+  sparkData.cpu.push(SYSTEM_MOCK.cpuTemp);
+  sparkData.ram.push(SYSTEM_MOCK.ramUsed + (Math.random()-.5)*3);
+  sparkData.net.push(SYSTEM_MOCK.dlMbps + (Math.random()-.5)*15);
+  sparkData.disk.push(SYSTEM_MOCK.diskUsed + Math.random());
+}
+renderSystemCards();
+populateSpark('spark-cpu-line',  sparkData.cpu,  'var(--amber)');
+populateSpark('spark-ram-line',  sparkData.ram,  'var(--signal)');
+populateSpark('spark-net-line',  sparkData.net,  'var(--signal)');
+populateSpark('spark-disk-line', sparkData.disk, 'var(--green)');
+setInterval(tickSparklines, 3000);
+
+// ═══════════════════════════════════════════════════
+// PIPELINE GRIB
+// ═══════════════════════════════════════════════════
+const GRIB_STEPS = [
+  { name:'GFS / NOAA',       desc:'NOMADS filter 0.25° — vent, pression, T2m', state:'ok',  size:'1.2 Mo', age:'6h 04m' },
+  { name:'ECMWF IFS',        desc:'S3 byte-range 0.25° — 10U/V, MSL, SWH',    state:'ok',  size:'640 kB', age:'8h 12m' },
+  { name:'ICON-EU',          desc:'DWD opendata 0.0625° — U/V/PMSL/T2m/CLCT', state:'ok',  size:'18.4 Mo', age:'3h 51m' },
+  { name:'ICON-Global',      desc:'DWD opendata 0.25° — monde entier',          state:'run', size:'—',      age:'en cours' },
+  { name:'ARPEGE / MF',      desc:'data.gouv.fr SP1/SP2 0.5°',                  state:'ok',  size:'830 kB', age:'5h 28m' },
+  { name:'AROME / MF',       desc:'API MF 0.025° — clé OK',                     state:'ok',  size:'2.1 Mo', age:'2h 09m' },
+  { name:'MFWAM',            desc:'API MF vagues 0.1°',                          state:'ok',  size:'410 kB', age:'5h 28m' },
+  { name:'WW3 / NOAA',       desc:'NOMADS multi_1.glo_30m vagues 0.5°',          state:'err', size:'—',      age:'HTTP 500' },
+  { name:'GEM / Canada',     desc:'MSC Datamart UGRD/VGRD/PRMSL/T2m',           state:'ok',  size:'3.4 Mo', age:'5h 03m' },
+];
+
+const OBS_STEPS = [
+  { name:'MF Synop',         desc:'donneespubliques.meteofrance.fr CSV',   state:'ok',  size:'33 kB',  age:'0h 12m' },
+  { name:'ICOADS NRT',       desc:'icoads.noaa.gov J-1 IMMA gz',           state:'ok',  size:'115 kB', age:'14h 00m' },
+  { name:'CMEMS In-Situ',    desc:'nrt.cmems-du.eu observations NRT',       state:'ok',  size:'12 kB',  age:'0h 42m' },
+  { name:'E-SURFMAR',        desc:'62029 62103 62163 NDBC relay',            state:'ok',  size:'6 kB',   age:'0h 12m' },
+  { name:'Argo / Ifremer',   desc:'erddap.ifremer.fr profils T/S 30j',      state:'err', size:'—',      age:'HTTP 404' },
+  { name:'IGRA2 Radiosondes',desc:'NCEI Brest / Rennes / Nantes',           state:'idle',size:'—',      age:'—' },
+];
+
+const CALC_STEPS = [
+  { name:'Lecture GRIB (eccodes/C)',  desc:'extraction points grille → arrays float32', state:'ok',  size:'',      age:'2h 08m' },
+  { name:'Calcul scores (C)',         desc:'score_engine.c — RMSE/MAE modèle × obs',    state:'run', size:'',      age:'en cours' },
+  { name:'Sérialisation JSON',        desc:'résultats → points_scores_YYYYMMDD.json',    state:'idle',size:'',     age:'—' },
+  { name:'Push → GitHub',            desc:'git add . && commit && push origin main',     state:'idle',size:'',     age:'—' },
+  { name:'Upsert → Supabase',         desc:'table model_scores · batch insert 250 pts',  state:'idle',size:'',     age:'—' },
+];
+
+function iconSVG(state) {
+  if (state==='ok')   return '✓';
+  if (state==='run')  return '▶';
+  if (state==='err')  return '✕';
+  return '·';
+}
+function pillState(state) {
+  if (state==='ok')  return 'ok';
+  if (state==='run') return 'ok';
+  if (state==='err') return 'err';
+  return 'warn';
+}
+
+function buildPipeline(containerId, steps) {
+  const c = document.getElementById(containerId);
+  c.innerHTML = '';
+  steps.forEach(s => {
+    const div = document.createElement('div');
+    div.className = 'pipe-step';
+    div.innerHTML = `
+      <div class="pipe-icon ${s.state}">${iconSVG(s.state)}</div>
+      <div class="pipe-info">
+        <div class="pipe-name">${s.name}</div>
+        <div class="pipe-desc">${s.desc}</div>
+      </div>
+      <div class="pipe-meta">
+        ${s.size ? `<div style="color:var(--text-mid)">${s.size}</div>` : ''}
+        <div style="color:${s.state==='err'?'var(--red)':s.state==='run'?'var(--signal)':'var(--text-dim)'}">${s.age}</div>
+      </div>`;
+    c.appendChild(div);
+  });
+}
+
+buildPipeline('pipeline-grib', GRIB_STEPS);
+buildPipeline('pipeline-obs',  OBS_STEPS);
+buildPipeline('pipeline-calc', CALC_STEPS);
+
+// Dernière exécution (simulé)
+document.getElementById('last-run-ago').textContent = '2h 08m';
+
+// ═══════════════════════════════════════════════════
+// SERVICES EXTERNES
+// ═══════════════════════════════════════════════════
+const SERVICES = [
+  { name:'Supabase (DB + Auth)',   url:'supabase.com',              state:'ok',  latency:'42 ms' },
+  { name:'GitHub (push scores)',   url:'api.github.com',            state:'ok',  latency:'118 ms' },
+  { name:'ECMWF Open Data',        url:'data.ecmwf.int',            state:'warn',latency:'timeout' },
+  { name:'ECMWF S3 Mirror',        url:'ecmwf-forecasts.s3.amazonaws.com', state:'ok', latency:'89 ms' },
+  { name:'NOAA NOMADS',            url:'nomads.ncep.noaa.gov',      state:'warn',latency:'HTTP 500' },
+  { name:'DWD Opendata',           url:'opendata.dwd.de',           state:'ok',  latency:'201 ms' },
+  { name:'Météo-France API',       url:'public-api.meteofrance.fr', state:'ok',  latency:'155 ms' },
+  { name:'CMEMS NRT',              url:'nrt.cmems-du.eu',           state:'ok',  latency:'334 ms' },
+  { name:'Ifremer ERDDAP',         url:'erddap.ifremer.fr',         state:'err', latency:'HTTP 404' },
+];
+
+function buildServiceList() {
+  const c = document.getElementById('service-list');
+  SERVICES.forEach(s => {
+    const pState = s.state==='ok' ? 'ok' : s.state==='warn' ? 'warn' : 'err';
+    const div = document.createElement('div');
+    div.className = 'service-row';
+    div.innerHTML = `
+      <div class="svc-left">
+        <div class="svc-name">${s.name}</div>
+        <div class="svc-url">${s.url}</div>
+      </div>
+      <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
+        <span class="pill pill-${pState}"><span class="dot"></span>${s.state.toUpperCase()}</span>
+        <div class="svc-latency"><strong>${s.latency}</strong></div>
+      </div>`;
+    c.appendChild(div);
+  });
+}
+buildServiceList();
+
+// ═══════════════════════════════════════════════════
+// GIT LOG (simulé — remplacer par un appel à l'API GitHub)
+// ═══════════════════════════════════════════════════
+const GIT_COMMITS = [
+  { hash:'a3f91c2', msg:'feat: MFWAM vagues ajouté au pipeline', branch:'main',  ago:'2h 08m' },
+  { hash:'d09be51', msg:'fix: crash EmptyDataError NDBC stations.csv',branch:'main', ago:'6h 44m' },
+  { hash:'c82a014', msg:'chore: clés MF_API_KEY_* par variable d\'env', branch:'main', ago:'18h 20m' },
+  { hash:'01ff3d9', msg:'feat: score_engine.c — RMSE par point grille', branch:'dev',  ago:'1j 03h' },
+  { hash:'7e45b11', msg:'init: structure projet WeatherScore v0.2',     branch:'main', ago:'2j 14h' },
+];
+
+function buildGitLog() {
+  const c = document.getElementById('git-log');
+  GIT_COMMITS.forEach(g => {
+    const isMain = g.branch==='main';
+    const div = document.createElement('div');
+    div.className = 'pipe-step';
+    div.innerHTML = `
+      <div class="pipe-icon ok" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0;min-width:28px">${g.hash.slice(0,4)}</div>
+      <div class="pipe-info">
+        <div class="pipe-name" style="font-size:12px">${g.msg}</div>
+        <div class="pipe-desc">
+          <span style="color:${isMain?'var(--green)':'var(--amber)'}">${g.branch}</span>
+          · ${g.ago}
+        </div>
+      </div>`;
+    c.appendChild(div);
+  });
+}
+buildGitLog();
+
+// ═══════════════════════════════════════════════════
+// RÉSUMÉ SOURCES.PY
+// ═══════════════════════════════════════════════════
+const SOURCES_SUMMARY = [
+  { label:'GRIB téléchargés',  value:'8 / 10',  color:'var(--green)' },
+  { label:'Observations',       value:'5 / 6',   color:'var(--signal)' },
+  { label:'Volume total',       value:'28.1 Mo', color:'var(--text-mid)' },
+  { label:'Durée d\'exécution', value:'2m 08s',  color:'var(--text-mid)' },
+  { label:'Dernière zone',      value:'48–50°N / 8–1°W', color:'var(--text-mid)' },
+  { label:'Erreurs critiques',  value:'0',       color:'var(--green)' },
+  { label:'Warnings',           value:'3',       color:'var(--amber)' },
+];
+
+function buildSourcesSummary() {
+  const c = document.getElementById('sources-summary');
+  SOURCES_SUMMARY.forEach(s => {
+    const div = document.createElement('div');
+    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)';
+    div.innerHTML = `
+      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim)">${s.label}</div>
+      <div style="font-family:var(--font-mono);font-size:13px;font-weight:500;color:${s.color}">${s.value}</div>`;
+    c.appendChild(div);
+  });
+}
+buildSourcesSummary();
+
+// ═══════════════════════════════════════════════════
+// SUPABASE — UTILISATEURS
+// ═══════════════════════════════════════════════════
+async function fetchUsers() {
+  const loading = document.getElementById('users-loading');
+  const table   = document.getElementById('users-table');
+  const tbody   = document.getElementById('users-tbody');
+
+  try {
+    const { data: users, error } = await sb
+      .from('profiles')
+      .select('*')
+      .order('lastname', { ascending: true });
+
+    if (error) throw error;
+    loading.style.display = 'none';
+    table.style.display = 'table';
+
+    if (!users || users.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="7" class="state-msg">Aucun utilisateur dans la table.</td></tr>`;
+      ['total-users','total-captains','total-companies','total-admins'].forEach(id => document.getElementById(id).textContent = '0');
+      return;
+    }
+
+    let captains = 0, admins = 0;
+    const companies = new Set();
+
+    users.forEach(u => {
+      const nom      = u.lastname  || '—';
+      const prenom   = u.firstname || '—';
+      const navire   = u.vessel    || '—';
+      const compagnie= u.company   || '—';
+      const grade    = u.rank      || '—';
+      const email    = u.email     || '—';
+      const isAdmin  = u.role === 'admin';
+      const created  = u.created_at ? new Date(u.created_at).toLocaleDateString('fr-FR') : '—';
+      const initials = (nom[0]||'?') + (prenom[0]||'');
+
+      const g = grade.toLowerCase();
+      if (g.includes('commandant') || g.includes('captain') || g.includes('master')) captains++;
+      if (isAdmin) admins++;
+      if (compagnie !== '—') companies.add(compagnie.trim().toLowerCase());
+
+      const tr = document.createElement('tr');
+      tr.innerHTML = `
+        <td>
+          <div class="user-cell">
+            <div class="avatar-circle">${initials.toUpperCase()}</div>
+            <div class="user-full">${nom} ${prenom}${isAdmin ? ' <span class="badge admin">Admin</span>':''}</div>
+          </div>
+        </td>
+        <td>${navire}</td>
+        <td style="color:var(--text-dim)">${compagnie}</td>
+        <td><span class="badge">${grade}</span></td>
+        <td class="user-email">${email}</td>
+        <td><span class="status-dot"></span><span style="font-size:11px;color:var(--green)">Actif</span></td>
+        <td style="color:var(--text-dim)">${created}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    document.getElementById('total-users').textContent    = users.length;
+    document.getElementById('total-captains').textContent = captains;
+    document.getElementById('total-companies').textContent= companies.size;
+    document.getElementById('total-admins').textContent   = admins;
+
+  } catch(err) {
+    console.error(err);
+    loading.className  = 'state-msg state-err';
+    loading.textContent= 'Erreur Supabase : ' + (err.message || err);
+    document.getElementById('db-status-pill').className = 'pill pill-err';
+    document.getElementById('db-status-pill').innerHTML = '<span class="dot"></span>Erreur connexion';
+    ['total-users','total-captains','total-companies','total-admins'].forEach(id => document.getElementById(id).textContent = '—');
+  }
+}
+
+fetchUsers();
+</script>
+</body>
+</html>

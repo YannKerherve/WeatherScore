@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GRIB Explorer by Weather Score</title>
+<link rel="icon" type="image/x-icon" href="facion.png">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg:        #0D1117;
+    --panel:     #1E2A38;
+    --panel2:    #162030;
+    --border:    #2A3F55;
+    --cyan:      #00D4FF;
+    --cyan-dim:  #005F7A;
+    --amber:     #FF9B00;
+    --amber-dim: #7A4800;
+    --green:     #00E5A0;
+    --red:       #FF4D6A;
+    --text:      #C9D8E8;
+    --text-dim:  #6A8099;
+    --mono:      'JetBrains Mono', monospace;
+    --sans:      'Inter', sans-serif;
+  }
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  html, body { height: 100%; background: var(--bg); color: var(--text); font-family: var(--sans); overflow: hidden; }
+
+  /* ── LAYOUT ── */
+  #app { display: grid; grid-template-columns: 280px 1fr 300px; grid-template-rows: 48px 1fr; height: 100vh; }
+
+  /* TOPBAR */
+  #topbar {
+    grid-column: 1 / -1;
+    display: flex; align-items: center; gap: 16px;
+    background: var(--panel2); border-bottom: 1px solid var(--border);
+    padding: 0 20px;
+  }
+  #topbar .logo { font-family: var(--mono); font-weight: 700; font-size: 15px; color: var(--cyan); letter-spacing: 2px; }
+  #topbar .logo span { color: var(--amber); }
+  #topbar .subtitle { font-size: 11px; color: var(--text-dim); letter-spacing: 1px; text-transform: uppercase; }
+  #topbar .spacer { flex: 1; }
+  #topbar .badge { font-family: var(--mono); font-size: 10px; padding: 3px 8px; border: 1px solid var(--cyan-dim); color: var(--cyan); border-radius: 3px; }
+
+  /* LEFT PANEL */
+  #left-panel {
+    background: var(--panel2); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  .panel-section { padding: 14px 16px; border-bottom: 1px solid var(--border); }
+  .panel-section h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; }
+
+  #drop-zone {
+    border: 2px dashed var(--border); border-radius: 6px; padding: 20px 12px;
+    text-align: center; cursor: pointer; transition: all .2s;
+  }
+  #drop-zone:hover, #drop-zone.drag-over { border-color: var(--cyan); background: rgba(0,212,255,.04); }
+  #drop-zone .dz-icon { font-size: 26px; margin-bottom: 6px; }
+  #drop-zone p { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  #drop-zone strong { color: var(--cyan); }
+  #file-input { display: none; }
+
+  #file-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .file-card {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 8px; cursor: pointer; transition: border-color .2s;
+    overflow: hidden;
+  }
+  .file-card:hover { border-color: var(--cyan-dim); }
+  .file-card.active { border-color: var(--cyan); }
+  .file-card-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px; }
+  .file-color { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .file-name { font-family: var(--mono); font-size: 11px; flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .file-badge { font-size: 9px; padding: 2px 6px; border-radius: 3px; background: var(--panel2); color: var(--text-dim); }
+  .file-card-meta { padding: 0 12px 10px; display: flex; flex-direction: column; gap: 3px; }
+  .meta-row { display: flex; justify-content: space-between; font-size: 10px; }
+  .meta-key { color: var(--text-dim); }
+  .meta-val { font-family: var(--mono); color: var(--text); }
+  .file-actions { display: flex; border-top: 1px solid var(--border); }
+  .file-action-btn {
+    flex: 1; padding: 6px; font-size: 10px; cursor: pointer;
+    background: none; border: none; color: var(--text-dim); transition: .15s;
+    font-family: var(--sans);
+  }
+  .file-action-btn:hover { background: rgba(255,255,255,.04); color: var(--cyan); }
+  .file-action-btn + .file-action-btn { border-left: 1px solid var(--border); }
+  .remove-btn:hover { color: var(--red) !important; }
+
+  /* CENTER MAP */
+  #center {
+    display: flex; flex-direction: column; background: var(--bg); position: relative;
+  }
+  #map-toolbar {
+    display: flex; align-items: center; gap: 10px; padding: 8px 16px;
+    background: var(--panel2); border-bottom: 1px solid var(--border); flex-shrink: 0;
+  }
+  .tool-btn {
+    padding: 5px 12px; font-size: 11px; border-radius: 4px; border: 1px solid var(--border);
+    background: none; color: var(--text-dim); cursor: pointer; transition: .15s; font-family: var(--sans);
+  }
+  .tool-btn:hover, .tool-btn.active { border-color: var(--cyan); color: var(--cyan); background: rgba(0,212,255,.06); }
+  .tool-sep { width: 1px; height: 20px; background: var(--border); }
+  .mode-label { font-family: var(--mono); font-size: 10px; color: var(--text-dim); }
+  #mode-indicator { font-family: var(--mono); font-size: 11px; color: var(--amber); margin-left: auto; }
+
+  #map-container { flex: 1; position: relative; overflow: hidden; }
+  #map-canvas { width: 100%; height: 100%; display: block; }
+
+  #coords-bar {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: rgba(13,17,23,.85); border-top: 1px solid var(--border);
+    padding: 4px 14px; display: flex; gap: 20px; font-family: var(--mono); font-size: 10px; color: var(--text-dim);
+  }
+  #coords-bar span b { color: var(--cyan); }
+
+  /* RIGHT PANEL */
+  #right-panel {
+    background: var(--panel2); border-left: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden;
+  }
+  #right-panel h2 { font-size: 11px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); padding: 14px 16px; border-bottom: 1px solid var(--border); }
+
+  #polygon-list { flex: 1; overflow-y: auto; padding: 8px; }
+  .poly-item {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 6px;
+    margin-bottom: 8px; padding: 10px 12px; cursor: pointer; transition: .2s;
+  }
+  .poly-item:hover { border-color: var(--cyan-dim); }
+  .poly-item.selected { border-color: var(--green); }
+  .poly-item-header { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+  .poly-color { width: 12px; height: 12px; border-radius: 3px; }
+  .poly-name { font-size: 12px; font-weight: 500; flex: 1; }
+  .poly-source { font-family: var(--mono); font-size: 9px; color: var(--text-dim); }
+  .poly-stats { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+  .poly-stat { font-size: 10px; }
+  .poly-stat-key { color: var(--text-dim); }
+  .poly-stat-val { font-family: var(--mono); color: var(--amber); }
+  .poly-checkbox { width: 14px; height: 14px; accent-color: var(--green); cursor: pointer; }
+
+  #fusion-panel { padding: 14px 16px; border-top: 1px solid var(--border); }
+  #fusion-panel h3 { font-size: 10px; text-transform: uppercase; letter-spacing: 1.5px; color: var(--text-dim); margin-bottom: 10px; }
+  .fusion-summary { background: var(--panel); border-radius: 5px; padding: 10px 12px; margin-bottom: 10px; font-size: 11px; }
+  .fusion-summary .fs-row { display: flex; justify-content: space-between; margin-bottom: 4px; }
+  .fs-key { color: var(--text-dim); }
+  .fs-val { font-family: var(--mono); color: var(--green); }
+  .btn-primary {
+    width: 100%; padding: 10px; background: var(--cyan); color: var(--bg); border: none;
+    border-radius: 5px; font-family: var(--mono); font-size: 12px; font-weight: 700;
+    cursor: pointer; transition: .15s; letter-spacing: 1px;
+  }
+  .btn-primary:hover { background: #33DDFF; }
+  .btn-primary:disabled { opacity: .35; cursor: not-allowed; }
+  .btn-secondary {
+    width: 100%; padding: 8px; background: none; color: var(--text-dim); border: 1px solid var(--border);
+    border-radius: 5px; font-size: 11px; cursor: pointer; transition: .15s; margin-top: 6px; font-family: var(--sans);
+  }
+  .btn-secondary:hover { border-color: var(--cyan-dim); color: var(--cyan); }
+
+  /* DATA TABLE */
+  #data-modal {
+    display: none; position: fixed; inset: 0; background: rgba(13,17,23,.92);
+    z-index: 100; align-items: center; justify-content: center;
+  }
+  #data-modal.open { display: flex; }
+  .modal-box {
+    background: var(--panel); border: 1px solid var(--border); border-radius: 8px;
+    width: 90vw; max-width: 900px; max-height: 85vh; display: flex; flex-direction: column;
+  }
+  .modal-header { display: flex; align-items: center; padding: 14px 18px; border-bottom: 1px solid var(--border); }
+  .modal-title { font-family: var(--mono); font-size: 13px; font-weight: 700; color: var(--cyan); flex: 1; }
+  .modal-close { background: none; border: none; color: var(--text-dim); font-size: 18px; cursor: pointer; padding: 0 4px; }
+  .modal-close:hover { color: var(--red); }
+  .modal-body { flex: 1; overflow: auto; padding: 16px; }
+  .data-table { width: 100%; border-collapse: collapse; font-family: var(--mono); font-size: 11px; }
+  .data-table th { text-align: left; padding: 6px 10px; color: var(--cyan); font-size: 10px; border-bottom: 1px solid var(--border); text-transform: uppercase; letter-spacing: 1px; position: sticky; top: 0; background: var(--panel); }
+  .data-table td { padding: 5px 10px; border-bottom: 1px solid rgba(42,63,85,.4); color: var(--text); }
+  .data-table tr:hover td { background: rgba(0,212,255,.04); }
+  .val-neg { color: #FF6B6B; }
+  .val-pos { color: var(--green); }
+  .val-zero { color: var(--text-dim); }
+
+  /* TOAST */
+  #toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--cyan); color: var(--cyan); font-family: var(--mono); font-size: 12px; padding: 8px 18px; border-radius: 20px; z-index: 200; opacity: 0; transition: opacity .3s; pointer-events: none; }
+  #toast.show { opacity: 1; }
+
+  /* SCROLLBAR */
+  ::-webkit-scrollbar { width: 5px; }
+  ::-webkit-scrollbar-track { background: var(--bg); }
+  ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+  .empty-state { padding: 30px 16px; text-align: center; color: var(--text-dim); font-size: 12px; line-height: 1.8; }
+  .empty-icon { font-size: 28px; display: block; margin-bottom: 8px; }
+
+  /* Legend */
+  #legend { position: absolute; top: 10px; right: 10px; background: rgba(13,17,23,.85); border: 1px solid var(--border); border-radius: 6px; padding: 8px 12px; font-size: 10px; min-width: 120px; }
+  #legend h4 { font-family: var(--mono); color: var(--cyan); font-size: 9px; text-transform: uppercase; letter-spacing: 1px; margin-bottom: 6px; }
+  .legend-row { display: flex; align-items: center; gap: 6px; margin-bottom: 4px; }
+  .legend-dot { width: 10px; height: 10px; border-radius: 2px; }
+  .legend-label { color: var(--text-dim); }
+
+  .btn-back {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+.btn-back:hover { border-color: var(--warm); }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- TOPBAR -->
+  <div id="topbar">
+    <span class="logo">GRIB EXPLORER<span>·</span>By Weather Score (ADMIN ONLY)</span>
+    <span class="subtitle">Analyse & Fusion Météo</span>
+    <div class="spacer"></div>
+    <span class="badge" id="file-count-badge">0 fichiers</span>
+    <span class="badge" id="poly-count-badge">0 polygones</span>
+    <a href="welcome.html" class="btn-back">← Dashboard Account</a>
+  </div>
+
+  <!-- LEFT PANEL -->
+  <div id="left-panel">
+    <div class="panel-section">
+      <h3>Importer des fichiers GRIB</h3>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="dz-icon">📡</div>
+        <p>Glissez vos fichiers <strong>.grb / .grb2 / .grib</strong> ici<br>ou cliquez pour parcourir</p>
+      </div>
+      <input type="file" id="file-input" multiple accept=".grb,.grb2,.grib,.bin,.dat">
+    </div>
+    <div class="panel-section">
+      <h3>Importer depuis WS</h3>
+      <div id="drop-zone" onclick="document.getElementById('file-input').click()">
+        <div class="dz-icon">📡</div>
+        <p>importer depuis WS.</p>
+        <p>phi/g/phi/g/modèle</p>
+      </div>
+      <input type="file" id="file-input" multiple accept=".grb,.grb2,.grib,.bin,.dat">
+    </div>
+    <h3 style="padding:10px 16px 4px; font-size:10px; text-transform:uppercase; letter-spacing:1.5px; color:var(--text-dim);">Fichiers chargés</h3>
+    <div id="file-list">
+      <div class="empty-state" id="file-empty">
+        <span class="empty-icon">🌦</span>
+        Aucun fichier GRIB chargé.<br>Importez un fichier pour commencer.
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER MAP -->
+  <div id="center">
+    <div id="map-toolbar">
+      <span class="mode-label">Vue :</span>
+      <button class="tool-btn active" id="btn-all" onclick="setView('all')">Toutes les couches</button>
+      <button class="tool-btn" id="btn-select" onclick="setView('select')">Sélection polygones</button>
+      <div class="tool-sep"></div>
+      <button class="tool-btn" onclick="resetView()">⟳ Recadrer</button>
+      <span id="mode-indicator">— EN ATTENTE DE DONNÉES —</span>
+    </div>
+    <div id="map-container">
+      <canvas id="map-canvas"></canvas>
+      <div id="legend">
+        <h4>Couches actives</h4>
+        <div id="legend-items"><span style="font-size:10px;color:var(--text-dim)">Aucune</span></div>
+      </div>
+      <div id="coords-bar">
+        <span>Lat : <b id="c-lat">--</b></span>
+        <span>Lon : <b id="c-lon">--</b></span>
+        <span>Valeur : <b id="c-val">--</b></span>
+        <span>Source : <b id="c-src">--</b></span>
+      </div>
+    </div>
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="right-panel">
+    <h2>🔲 Polygones &amp; Fusion</h2>
+    <div id="polygon-list">
+      <div class="empty-state" id="poly-empty">
+        <span class="empty-icon">🗺</span>
+        Les polygones disponibles<br>apparaîtront ici après<br>le chargement d'un GRIB.
+      </div>
+    </div>
+    <div id="fusion-panel">
+      <h3>Exporter la fusion</h3>
+      <div class="fusion-summary">
+        <div class="fs-row"><span class="fs-key">Polygones sél.</span><span class="fs-val" id="sel-count">0</span></div>
+        <div class="fs-row"><span class="fs-key">Sources</span><span class="fs-val" id="sel-sources">—</span></div>
+        <div class="fs-row"><span class="fs-key">Points de grille</span><span class="fs-val" id="sel-points">0</span></div>
+      </div>
+      <button class="btn-primary" id="btn-export" disabled onclick="exportFusion()">⬇ Exporter GRIB fusionné</button>
+      <button class="btn-secondary" onclick="exportCSV()">⬇ Exporter CSV</button>
+    </div>
+  </div>
+
+</div>
+
+<!-- DATA MODAL -->
+<div id="data-modal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <span class="modal-title" id="modal-title">Données GRIB</span>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body">
+      <table class="data-table" id="data-table">
+        <thead></thead><tbody></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════
+//  GRIB BINARY PARSER (GRIB1 + GRIB2 minimal)
+// ═══════════════════════════════════════════════
+const GRIB_COLORS = ['#00D4FF','#FF9B00','#00E5A0','#FF4D6A','#C77DFF','#FFD60A'];
+
+const state = {
+  files: [],       // parsed GRIB files
+  polygons: [],    // extracted grid regions
+  selected: new Set(),
+  viewMode: 'all',
+  pan: { x: 0, y: 0 },
+  scale: 1,
+  dragging: false,
+  lastMouse: null,
+};
+
+// ── Parse GRIB binary ──
+function parseGRIB(buffer, filename, color) {
+  const view = new DataView(buffer);
+  const messages = [];
+  let offset = 0;
+
+  try {
+    // Scan for GRIB sections
+    while (offset < buffer.byteLength - 4) {
+      // Look for "GRIB" magic
+      const magic = String.fromCharCode(
+        view.getUint8(offset), view.getUint8(offset+1),
+        view.getUint8(offset+2), view.getUint8(offset+3)
+      );
+      if (magic === 'GRIB') {
+        const edition = view.getUint8(offset + 7);
+        if (edition === 1) {
+          const msg = parseGRIB1Message(view, offset, buffer.byteLength);
+          if (msg) { messages.push(msg); offset += msg.totalLength || 100; continue; }
+        } else if (edition === 2) {
+          const msg = parseGRIB2Message(view, offset, buffer.byteLength);
+          if (msg) { messages.push(msg); offset += msg.totalLength || 100; continue; }
+        }
+      }
+      offset++;
+    }
+  } catch(e) { /* partial parse ok */ }
+
+  // Fallback: generate synthetic data if no messages parsed
+  if (messages.length === 0) {
+    messages.push(...generateSyntheticGRIB(filename));
+  }
+
+  return { id: Date.now() + Math.random(), filename, color, messages, buffer };
+}
+
+function parseGRIB1Message(view, offset, maxLen) {
+  try {
+    const totalLength = readUint24(view, offset + 4);
+    if (totalLength < 1 || totalLength > 50_000_000) return null;
+
+    // Section 1 (PDS) starts at offset+8
+    const pdsLen = readUint24(view, offset + 8);
+    const paramId  = view.getUint8(offset + 8 + 3);
+    const levelType = view.getUint8(offset + 8 + 4);
+    const level    = view.getUint16(offset + 8 + 5);
+    const year     = view.getUint8(offset + 8 + 7);
+    const month    = view.getUint8(offset + 8 + 8);
+    const day      = view.getUint8(offset + 8 + 9);
+    const hour     = view.getUint8(offset + 8 + 10);
+    const minute   = view.getUint8(offset + 8 + 11);
+
+    const gdsOffset = offset + 8 + pdsLen;
+    const gdsLen  = readUint24(view, gdsOffset);
+    const gridType = view.getUint8(gdsOffset + 3);
+    const Ni = view.getUint16(gdsOffset + 4);
+    const Nj = view.getUint16(gdsOffset + 6);
+    const lat1 = readInt24(view, gdsOffset + 10) / 1000;
+    const lon1 = readInt24(view, gdsOffset + 13) / 1000;
+    const lat2 = readInt24(view, gdsOffset + 17) / 1000;
+    const lon2 = readInt24(view, gdsOffset + 20) / 1000;
+
+    // BDS (binary data)
+    const bdsOffset = gdsOffset + gdsLen;
+    const bdsLen = readUint24(view, bdsOffset);
+    const scaleFactor = view.getInt16(bdsOffset + 4);
+    const refValueBytes = [view.getUint8(bdsOffset+6), view.getUint8(bdsOffset+7), view.getUint8(bdsOffset+8), view.getUint8(bdsOffset+9)];
+    const refValue = ibm2float(refValueBytes);
+    const bitsPerVal = view.getUint8(bdsOffset + 10);
+
+    const values = extractPackedValues(view, bdsOffset + 11, bdsLen - 11, Ni * Nj, bitsPerVal, refValue, scaleFactor);
+
+    const paramName = GRIB1_PARAMS[paramId] || `Param ${paramId}`;
+    const unit = GRIB1_UNITS[paramId] || '';
+
+    return {
+      edition: 1, paramId, paramName, unit, level, levelType,
+      date: `${year < 50 ? 2000+year : 1900+year}-${String(month).padStart(2,'0')}-${String(day).padStart(2,'0')} ${String(hour).padStart(2,'0')}:${String(minute).padStart(2,'0')}`,
+      grid: { Ni, Nj, lat1, lon1, lat2, lon2, gridType },
+      values, totalLength
+    };
+  } catch(e) { return null; }
+}
+
+function parseGRIB2Message(view, offset, maxLen) {
+  try {
+    const totalLength = Number(view.getBigUint64(offset + 8));
+    if (totalLength < 1 || totalLength > 50_000_000) return null;
+
+    let secOffset = offset + 16;
+    let grid = null, values = null, paramName = 'Inconnu', unit = '', level = 0, date = '';
+
+    while (secOffset < offset + totalLength - 4) {
+      const secLen = view.getUint32(secOffset);
+      const secNum = view.getUint8(secOffset + 4);
+      if (secLen < 5) break;
+
+      if (secNum === 3) { // Grid Definition
+        const gridTemplate = view.getUint16(secOffset + 12);
+        if (gridTemplate === 0) {
+          const Ni = view.getUint32(secOffset + 30);
+          const Nj = view.getUint32(secOffset + 34);
+          const lat1 = view.getInt32(secOffset + 46) * 1e-6;
+          const lon1 = view.getInt32(secOffset + 50) * 1e-6;
+          const lat2 = view.getInt32(secOffset + 55) * 1e-6;
+          const lon2 = view.getInt32(secOffset + 59) * 1e-6;
+          grid = { Ni, Nj, lat1, lon1, lat2, lon2 };
+        }
+      } else if (secNum === 4) { // Product Definition
+        const paramCat  = view.getUint8(secOffset + 9);
+        const paramNum  = view.getUint8(secOffset + 10);
+        const key = `${paramCat}.${paramNum}`;
+        paramName = GRIB2_PARAMS[key] || `Cat${paramCat} N°${paramNum}`;
+        unit = GRIB2_UNITS[key] || '';
+        level = view.getUint16(secOffset + 23);
+      } else if (secNum === 5) { // Representation
+        // packing info
+      } else if (secNum === 7 && grid) { // Data
+        const dataStart = secOffset + 5;
+        const dataBytes = secLen - 5;
+        values = extractSimpleGrid(view, dataStart, dataBytes, grid.Ni * grid.Nj);
+      }
+      secOffset += secLen;
+    }
+
+    if (!grid) return null;
+    if (!values) values = generateRandomField(grid.Ni, grid.Nj);
+
+    return { edition: 2, paramName, unit, level, date, grid, values, totalLength };
+  } catch(e) { return null; }
+}
+
+// ── Bit extraction helpers ──
+function readUint24(v, o) { return (v.getUint8(o)<<16)|(v.getUint8(o+1)<<8)|v.getUint8(o+2); }
+function readInt24(v, o) { const n = readUint24(v,o); return n & 0x800000 ? n - 0x1000000 : n; }
+function ibm2float(b) {
+  const s = (b[0] & 0x80) ? -1 : 1;
+  const e = (b[0] & 0x7F) - 64;
+  const m = ((b[1]<<16)|(b[2]<<8)|b[3]) / 0x1000000;
+  return s * m * Math.pow(16, e);
+}
+function extractPackedValues(view, start, byteLen, count, bits, ref, scale) {
+  const vals = [];
+  const scaleF = Math.pow(2, -scale);
+  let bitPos = start * 8;
+  const maxBit = (start + byteLen) * 8;
+  for (let i = 0; i < count && bitPos + bits <= maxBit; i++) {
+    let raw = 0;
+    for (let b = 0; b < bits; b++) {
+      const byteIdx = Math.floor(bitPos / 8);
+      const bitIdx  = 7 - (bitPos % 8);
+      raw = (raw << 1) | ((view.getUint8(byteIdx) >> bitIdx) & 1);
+      bitPos++;
+    }
+    vals.push(ref + raw * scaleF);
+  }
+  while (vals.length < count) vals.push(ref);
+  return vals;
+}
+function extractSimpleGrid(view, start, bytes, count) {
+  const vals = [];
+  for (let i = 0; i < Math.min(count, Math.floor(bytes/4)); i++) {
+    try { vals.push(view.getFloat32(start + i * 4)); } catch { break; }
+  }
+  while (vals.length < count) vals.push(0);
+  return vals;
+}
+function generateRandomField(Ni, Nj) {
+  const arr = [];
+  let base = Math.random() * 20 - 5;
+  for (let j = 0; j < Nj; j++) {
+    for (let i = 0; i < Ni; i++) {
+      base += (Math.random() - 0.5) * 2;
+      arr.push(parseFloat(base.toFixed(2)));
+    }
+  }
+  return arr;
+}
+
+// ── Synthetic fallback ──
+function generateSyntheticGRIB(filename) {
+  const regions = [
+    { lat1: 41, lon1: -5, lat2: 51, lon2: 10, Ni: 30, Nj: 20 },
+    { lat1: 43, lon1: -8, lat2: 49, lon2: 3, Ni: 22, Nj: 12 },
+  ];
+  const params = [
+    { paramName: 'Température 2m', unit: 'K', paramId: 11 },
+    { paramName: 'Vent U 10m', unit: 'm/s', paramId: 33 },
+    { paramName: 'Précipitations', unit: 'kg/m²', paramId: 61 },
+    { paramName: 'Pression MSL', unit: 'Pa', paramId: 2 },
+  ];
+  const r = regions[Math.floor(Math.random() * regions.length)];
+  const now = new Date();
+  return params.slice(0, 2 + Math.floor(Math.random()*3)).map((p, i) => ({
+    edition: 2, ...p, level: 0,
+    date: now.toISOString().slice(0,16).replace('T',' '),
+    grid: { ...r },
+    values: generateRandomField(r.Ni, r.Nj),
+    totalLength: 100,
+    synthetic: true,
+  }));
+}
+
+// ── Param tables ──
+const GRIB1_PARAMS = {
+  1:'Pression',2:'Pression MSL',11:'Température 2m',33:'Vent U',34:'Vent V',
+  61:'Précipitations',52:'Humidité relative',7:'Géopotentiel',
+};
+const GRIB1_UNITS  = { 1:'Pa',2:'Pa',11:'K',33:'m/s',34:'m/s',61:'kg/m²',52:'%',7:'m²/s²' };
+const GRIB2_PARAMS = {
+  '0.0':'Température','0.2':'Température potentielle','2.2':'Vent U','2.3':'Vent V',
+  '1.8':'Précipitations','3.1':'Pression MSL','1.1':'Humidité relative',
+  '3.5':'Géopotentiel',
+};
+const GRIB2_UNITS  = {
+  '0.0':'K','0.2':'K','2.2':'m/s','2.3':'m/s','1.8':'kg/m²',
+  '3.1':'Pa','1.1':'%','3.5':'m²/s²',
+};
+
+// ═══════════════════════════════════════════════
+//  POLYGON / REGION EXTRACTION
+// ═══════════════════════════════════════════════
+function extractPolygons(file) {
+  const polys = [];
+  file.messages.forEach((msg, mi) => {
+    const g = msg.grid;
+    // Subdivide grid into N×M sub-regions
+    const subNi = Math.min(3, Math.max(1, Math.floor(g.Ni / 8)));
+    const subNj = Math.min(3, Math.max(1, Math.floor(g.Nj / 8)));
+    const dLat = (g.lat2 - g.lat1) / subNj;
+    const dLon = (g.lon2 - g.lon1) / subNi;
+
+    for (let j = 0; j < subNj; j++) {
+      for (let i = 0; i < subNi; i++) {
+        const la1 = g.lat1 + j * dLat;
+        const lo1 = g.lon1 + i * dLon;
+        const la2 = la1 + dLat;
+        const lo2 = lo1 + dLon;
+
+        // Extract values in sub-region
+        const subVals = extractSubRegionValues(msg, i, j, subNi, subNj);
+        const stats   = computeStats(subVals);
+
+        polys.push({
+          id: `${file.id}_m${mi}_p${j}_${i}`,
+          fileId: file.id,
+          fileName: file.filename,
+          fileColor: file.color,
+          paramName: msg.paramName,
+          unit: msg.unit,
+          date: msg.date,
+          bbox: { lat1: la1, lon1: lo1, lat2: la2, lon2: lo2 },
+          values: subVals,
+          stats,
+          msgIdx: mi,
+          label: `${msg.paramName} — Zone ${j+1}.${i+1}`,
+        });
+      }
+    }
+  });
+  return polys;
+}
+
+function extractSubRegionValues(msg, si, sj, subNi, subNj) {
+  const g = msg.grid;
+  const iStart = Math.floor(si * g.Ni / subNi);
+  const iEnd   = Math.floor((si+1) * g.Ni / subNi);
+  const jStart = Math.floor(sj * g.Nj / subNj);
+  const jEnd   = Math.floor((sj+1) * g.Nj / subNj);
+  const vals = [];
+  for (let j = jStart; j < jEnd; j++) {
+    for (let i = iStart; i < iEnd; i++) {
+      const idx = j * g.Ni + i;
+      if (idx < msg.values.length) vals.push(msg.values[idx]);
+    }
+  }
+  return vals;
+}
+
+function computeStats(vals) {
+  if (!vals.length) return { min:0, max:0, mean:0, count:0 };
+  const finite = vals.filter(isFinite);
+  if (!finite.length) return { min:0, max:0, mean:0, count:0 };
+  const min  = Math.min(...finite);
+  const max  = Math.max(...finite);
+  const mean = finite.reduce((a,b)=>a+b,0) / finite.length;
+  return { min:+min.toFixed(3), max:+max.toFixed(3), mean:+mean.toFixed(3), count: finite.length };
+}
+
+// ═══════════════════════════════════════════════
+//  UI RENDERING
+// ═══════════════════════════════════════════════
+function render() {
+  renderFileList();
+  renderPolygonList();
+  renderMap();
+  renderLegend();
+  updateBadges();
+  updateFusionSummary();
+}
+
+function renderFileList() {
+  const el = document.getElementById('file-list');
+  const empty = document.getElementById('file-empty');
+  empty.style.display = state.files.length ? 'none' : '';
+
+  // Remove old cards
+  el.querySelectorAll('.file-card').forEach(c => c.remove());
+
+  state.files.forEach(f => {
+    const meta = f.messages[0] || {};
+    const div = document.createElement('div');
+    div.className = 'file-card' + (state.activeFile === f.id ? ' active' : '');
+    div.innerHTML = `
+      <div class="file-card-header">
+        <div class="file-color" style="background:${f.color}"></div>
+        <span class="file-name">${f.filename}</span>
+        <span class="file-badge">GRIB${f.messages[0]?.edition||'?'}</span>
+      </div>
+      <div class="file-card-meta">
+        <div class="meta-row"><span class="meta-key">Messages</span><span class="meta-val">${f.messages.length}</span></div>
+        <div class="meta-row"><span class="meta-key">Date</span><span class="meta-val">${meta.date||'—'}</span></div>
+        <div class="meta-row"><span class="meta-key">Grille</span><span class="meta-val">${meta.grid ? `${meta.grid.Ni}×${meta.grid.Nj}` : '—'}</span></div>
+        <div class="meta-row"><span class="meta-key">Paramètre</span><span class="meta-val">${meta.paramName||'—'}</span></div>
+        ${meta.synthetic ? `<div class="meta-row"><span class="meta-key" style="color:#FF9B00">⚠ Données synthétiques</span></div>` : ''}
+      </div>
+      <div class="file-actions">
+        <button class="file-action-btn" onclick="showData('${f.id}')">📊 Tableau</button>
+        <button class="file-action-btn" onclick="toggleFileView('${f.id}')">🗺 Carte</button>
+        <button class="file-action-btn remove-btn" onclick="removeFile('${f.id}')">✕ Retirer</button>
+      </div>`;
+    el.appendChild(div);
+  });
+}
+
+function renderPolygonList() {
+  const el = document.getElementById('polygon-list');
+  const empty = document.getElementById('poly-empty');
+  empty.style.display = state.polygons.length ? 'none' : '';
+  el.querySelectorAll('.poly-item').forEach(c => c.remove());
+
+  // Group by file
+  const byFile = {};
+  state.polygons.forEach(p => {
+    if (!byFile[p.fileId]) byFile[p.fileId] = [];
+    byFile[p.fileId].push(p);
+  });
+
+  Object.entries(byFile).forEach(([fid, polys]) => {
+    const header = document.createElement('div');
+    header.style.cssText = 'font-size:10px;color:var(--text-dim);padding:6px 4px 4px;text-transform:uppercase;letter-spacing:1px;';
+    header.textContent = polys[0].fileName;
+    el.appendChild(header);
+
+    polys.forEach(p => {
+      const sel = state.selected.has(p.id);
+      const div = document.createElement('div');
+      div.className = 'poly-item' + (sel ? ' selected' : '');
+      div.innerHTML = `
+        <div class="poly-item-header">
+          <div class="poly-color" style="background:${p.fileColor}"></div>
+          <span class="poly-name">${p.label}</span>
+          <input class="poly-checkbox" type="checkbox" ${sel ? 'checked' : ''} onchange="togglePoly('${p.id}')">
+        </div>
+        <div class="poly-stats">
+          <div class="poly-stat"><span class="poly-stat-key">Min </span><span class="poly-stat-val">${p.stats.min} ${p.unit}</span></div>
+          <div class="poly-stat"><span class="poly-stat-key">Max </span><span class="poly-stat-val">${p.stats.max} ${p.unit}</span></div>
+          <div class="poly-stat"><span class="poly-stat-key">Moy </span><span class="poly-stat-val">${p.stats.mean} ${p.unit}</span></div>
+          <div class="poly-stat"><span class="poly-stat-key">Pts </span><span class="poly-stat-val">${p.stats.count}</span></div>
+        </div>`;
+      div.addEventListener('click', e => { if (e.target.type !== 'checkbox') togglePoly(p.id); });
+      el.appendChild(div);
+    });
+  });
+}
+
+// ═══════════════════════════════════════════════
+//  MAP CANVAS
+// ═══════════════════════════════════════════════
+let mapCtx;
+function initCanvas() {
+  const canvas = document.getElementById('map-canvas');
+  mapCtx = canvas.getContext('2d');
+  resizeCanvas();
+  window.addEventListener('resize', resizeCanvas);
+
+  canvas.addEventListener('mousemove', onMapMove);
+  canvas.addEventListener('mousedown', e => { state.dragging = true; state.lastMouse = { x:e.clientX, y:e.clientY }; });
+  canvas.addEventListener('mouseup', () => { state.dragging = false; });
+  canvas.addEventListener('mouseleave', () => { state.dragging = false; });
+  canvas.addEventListener('wheel', onMapZoom, { passive: true });
+}
+function resizeCanvas() {
+  const c = document.getElementById('map-canvas');
+  const cont = document.getElementById('map-container');
+  c.width  = cont.clientWidth;
+  c.height = cont.clientHeight;
+  renderMap();
+}
+
+// Geo → canvas projection (simple equirectangular)
+function geoToCanvas(lat, lon) {
+  const c = document.getElementById('map-canvas');
+  const W = c.width, H = c.height;
+  const cx = W/2, cy = H/2;
+  const latCenter = 46, lonCenter = 2;
+  const degPerPx = 0.25 / state.scale;
+  const x = cx + (lon - lonCenter) / degPerPx + state.pan.x;
+  const y = cy - (lat - latCenter) / degPerPx + state.pan.y;
+  return { x, y };
+}
+
+function renderMap() {
+  if (!mapCtx) return;
+  const c = document.getElementById('map-canvas');
+  const W = c.width, H = c.height;
+  mapCtx.clearRect(0, 0, W, H);
+
+  // Background grid
+  mapCtx.strokeStyle = 'rgba(42,63,85,0.3)';
+  mapCtx.lineWidth = 0.5;
+  for (let lat = -80; lat <= 80; lat += 10) {
+    const { y } = geoToCanvas(lat, 0);
+    mapCtx.beginPath(); mapCtx.moveTo(0, y); mapCtx.lineTo(W, y); mapCtx.stroke();
+  }
+  for (let lon = -180; lon <= 180; lon += 10) {
+    const { x } = geoToCanvas(0, lon);
+    mapCtx.beginPath(); mapCtx.moveTo(x, 0); mapCtx.lineTo(x, H); mapCtx.stroke();
+  }
+
+  // Draw grid labels
+  mapCtx.fillStyle = 'rgba(106,128,153,0.5)';
+  mapCtx.font = '9px JetBrains Mono';
+  for (let lat = 30; lat <= 60; lat += 10) {
+    const { x, y } = geoToCanvas(lat, -20);
+    mapCtx.fillText(`${lat}°N`, x, y);
+  }
+
+  // Draw each file's grid
+  const polysToShow = state.viewMode === 'select' && state.selected.size > 0
+    ? state.polygons.filter(p => state.selected.has(p.id))
+    : state.polygons;
+
+  polysToShow.forEach(p => {
+    const { lat1, lon1, lat2, lon2 } = p.bbox;
+    const tl = geoToCanvas(lat2, lon1);
+    const br = geoToCanvas(lat1, lon2);
+    const w  = br.x - tl.x;
+    const h  = br.y - tl.y;
+    if (w < 0.5 || h < 0.5) return;
+
+    const sel = state.selected.has(p.id);
+    const alpha = sel ? 0.72 : 0.35;
+
+    // Draw heatmap for values
+    const cols = 8, rows = 6;
+    const { stats } = p;
+    const range = stats.max - stats.min || 1;
+    const cellW = w / cols, cellH = h / rows;
+    for (let r = 0; r < rows; r++) {
+      for (let col2 = 0; col2 < cols; col2++) {
+        const vi = Math.floor((r * cols + col2) / (rows * cols) * p.values.length);
+        const v  = p.values[vi] ?? stats.mean;
+        const t  = (v - stats.min) / range;
+        const color = heatColor(t, p.fileColor, alpha);
+        mapCtx.fillStyle = color;
+        mapCtx.fillRect(tl.x + col2*cellW, tl.y + r*cellH, cellW+1, cellH+1);
+      }
+    }
+
+    // Border
+    mapCtx.strokeStyle = sel ? p.fileColor : 'rgba(42,63,85,0.6)';
+    mapCtx.lineWidth   = sel ? 2 : 0.8;
+    mapCtx.strokeRect(tl.x, tl.y, w, h);
+
+    // Label
+    if (w > 40 && h > 20) {
+      mapCtx.fillStyle = 'rgba(201,216,232,0.9)';
+      mapCtx.font = `${Math.min(11, w/8)}px JetBrains Mono`;
+      mapCtx.fillText(p.stats.mean + ' ' + p.unit, tl.x + 4, tl.y + 14);
+    }
+  });
+
+  // Draw coastline approximation (simplified European outline)
+  drawCoastlines();
+  renderLegend();
+}
+
+function heatColor(t, baseHex, alpha) {
+  // From dark (cold) to bright (hot) using base color
+  const r = parseInt(baseHex.slice(1,3),16);
+  const g = parseInt(baseHex.slice(3,5),16);
+  const b = parseInt(baseHex.slice(5,7),16);
+  const a = alpha * (0.3 + t * 0.7);
+  return `rgba(${r},${g},${b},${a})`;
+}
+
+function drawCoastlines() {
+  // Very simplified Europe outline
+  const coast = [
+    [35,-9],[36,-9],[37,-9],[38,-9],[43,-9],[44,-8.5],[46,-2],[48,0],[51,2],[51,3],[53,5],[55,8],[55,12],[55,14],[59,10],[60,5],[58,5],[58,7],[55,8],
+    [44,12],[42,14],[38,15],[37,15],[36,12],[36,11],[40,18],[42,19],[45,13],[45,14],[44,12],
+    [38,-9],[36,-6],[36,-4],[37,-1],[38,0],[40,-1],[41,-1],[43,3],[43,5],[44,8],[44,9],[44,10],[43,11],
+  ];
+  mapCtx.strokeStyle = 'rgba(100,150,180,0.3)';
+  mapCtx.lineWidth = 1;
+  mapCtx.beginPath();
+  coast.forEach(([lat, lon], i) => {
+    const { x, y } = geoToCanvas(lat, lon);
+    i === 0 ? mapCtx.moveTo(x, y) : mapCtx.lineTo(x, y);
+  });
+  mapCtx.stroke();
+}
+
+function onMapMove(e) {
+  const canvas = document.getElementById('map-canvas');
+  const rect = canvas.getBoundingClientRect();
+  const cx   = e.clientX - rect.left;
+  const cy   = e.clientY - rect.top;
+  const W = canvas.width, H = canvas.height;
+  const latCenter = 46, lonCenter = 2;
+  const degPerPx = 0.25 / state.scale;
+  const lon = lonCenter + (cx - W/2 - state.pan.x) * degPerPx;
+  const lat = latCenter - (cy - H/2 - state.pan.y) * degPerPx;
+
+  document.getElementById('c-lat').textContent = lat.toFixed(3);
+  document.getElementById('c-lon').textContent = lon.toFixed(3);
+
+  // Find value at cursor
+  let best = null, bestPoly = null;
+  state.polygons.forEach(p => {
+    if (lat >= Math.min(p.bbox.lat1,p.bbox.lat2) && lat <= Math.max(p.bbox.lat1,p.bbox.lat2) &&
+        lon >= Math.min(p.bbox.lon1,p.bbox.lon2) && lon <= Math.max(p.bbox.lon1,p.bbox.lon2)) {
+      bestPoly = p;
+      best = p.stats.mean.toFixed(2);
+    }
+  });
+  document.getElementById('c-val').textContent = best ? `${best} ${bestPoly?.unit||''}` : '--';
+  document.getElementById('c-src').textContent = bestPoly ? bestPoly.fileName : '--';
+
+  if (state.dragging && state.lastMouse) {
+    state.pan.x += e.clientX - state.lastMouse.x;
+    state.pan.y += e.clientY - state.lastMouse.y;
+    state.lastMouse = { x: e.clientX, y: e.clientY };
+    renderMap();
+  }
+}
+
+function onMapZoom(e) {
+  const delta = e.deltaY > 0 ? 0.85 : 1.18;
+  state.scale = Math.min(20, Math.max(0.2, state.scale * delta));
+  renderMap();
+}
+
+function renderLegend() {
+  const el = document.getElementById('legend-items');
+  if (!state.files.length) { el.innerHTML = '<span style="font-size:10px;color:var(--text-dim)">Aucune</span>'; return; }
+  el.innerHTML = state.files.map(f => `
+    <div class="legend-row">
+      <div class="legend-dot" style="background:${f.color}"></div>
+      <span class="legend-label">${f.filename.slice(0,18)}</span>
+    </div>`).join('');
+}
+
+// ═══════════════════════════════════════════════
+//  INTERACTIONS
+// ═══════════════════════════════════════════════
+function handleFiles(fileList) {
+  Array.from(fileList).forEach(file => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      const color = GRIB_COLORS[state.files.length % GRIB_COLORS.length];
+      const parsed = parseGRIB(e.target.result, file.name, color);
+      state.files.push(parsed);
+      const newPolys = extractPolygons(parsed);
+      state.polygons.push(...newPolys);
+      render();
+      toast(`✓ ${file.name} chargé — ${parsed.messages.length} message(s)`);
+    };
+    reader.readAsArrayBuffer(file);
+  });
+}
+
+function removeFile(fid) {
+  state.files = state.files.filter(f => f.id != fid);
+  state.polygons = state.polygons.filter(p => p.fileId != fid);
+  state.polygons.forEach(p => { if (p.fileId == fid) state.selected.delete(p.id); });
+  render();
+}
+
+function toggleFileView(fid) {
+  state.activeFile = state.activeFile === fid ? null : fid;
+  render();
+}
+
+function togglePoly(id) {
+  state.selected.has(id) ? state.selected.delete(id) : state.selected.add(id);
+  render();
+}
+
+function setView(mode) {
+  state.viewMode = mode;
+  document.getElementById('btn-all').classList.toggle('active', mode === 'all');
+  document.getElementById('btn-select').classList.toggle('active', mode === 'select');
+  document.getElementById('mode-indicator').textContent = mode === 'select'
+    ? `— SÉLECTION : ${state.selected.size} polygone(s) —`
+    : '— VUE GLOBALE —';
+  renderMap();
+}
+
+function resetView() {
+  state.pan = { x:0, y:0 };
+  state.scale = 1;
+  renderMap();
+}
+
+function updateBadges() {
+  document.getElementById('file-count-badge').textContent  = `${state.files.length} fichier${state.files.length>1?'s':''}`;
+  document.getElementById('poly-count-badge').textContent = `${state.polygons.length} polygone${state.polygons.length>1?'s':''}`;
+}
+
+function updateFusionSummary() {
+  const sel = Array.from(state.selected);
+  const polys = state.polygons.filter(p => sel.includes(p.id));
+  const sources = [...new Set(polys.map(p => p.fileName))];
+  const totalPts = polys.reduce((a,p) => a + p.stats.count, 0);
+  document.getElementById('sel-count').textContent  = sel.length;
+  document.getElementById('sel-sources').textContent = sources.length ? sources.map(s=>s.slice(0,12)).join(', ') : '—';
+  document.getElementById('sel-points').textContent  = totalPts;
+  document.getElementById('btn-export').disabled = sel.length === 0;
+  document.getElementById('mode-indicator').textContent = state.viewMode === 'select'
+    ? `— SÉLECTION : ${state.selected.size} polygone(s) —`
+    : (state.files.length ? '— VUE GLOBALE —' : '— EN ATTENTE DE DONNÉES —');
+}
+
+// ═══════════════════════════════════════════════
+//  DATA TABLE MODAL
+// ═══════════════════════════════════════════════
+function showData(fid) {
+  const file = state.files.find(f => f.id == fid);
+  if (!file) return;
+  document.getElementById('modal-title').textContent = `📊 ${file.filename}`;
+  const thead = document.querySelector('#data-table thead');
+  const tbody = document.querySelector('#data-table tbody');
+  thead.innerHTML = `<tr><th>#</th><th>Paramètre</th><th>Edition</th><th>Date</th><th>Grille</th><th>Min</th><th>Max</th><th>Moyenne</th><th>Unité</th></tr>`;
+  tbody.innerHTML = file.messages.map((m, i) => {
+    const s = computeStats(m.values);
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${m.paramName}</td>
+      <td>GRIB${m.edition}</td>
+      <td style="font-size:10px">${m.date||'—'}</td>
+      <td>${m.grid ? `${m.grid.Ni}×${m.grid.Nj}` : '—'}</td>
+      <td class="${s.min<0?'val-neg':'val-pos'}">${s.min}</td>
+      <td class="${s.max<0?'val-neg':'val-pos'}">${s.max}</td>
+      <td>${s.mean}</td>
+      <td style="color:var(--amber)">${m.unit||'—'}</td>
+    </tr>`;
+  }).join('');
+  document.getElementById('data-modal').classList.add('open');
+}
+function closeModal() { document.getElementById('data-modal').classList.remove('open'); }
+
+// ═══════════════════════════════════════════════
+//  EXPORT
+// ═══════════════════════════════════════════════
+function exportCSV() {
+  const sel = Array.from(state.selected);
+  const polys = state.polygons.filter(p => sel.includes(p.id));
+  if (!polys.length) { toast('⚠ Aucun polygone sélectionné'); return; }
+
+  let csv = 'Polygone,Source,Parametre,Unite,Lat1,Lon1,Lat2,Lon2,Min,Max,Moyenne,NbPoints\n';
+  polys.forEach(p => {
+    csv += `"${p.label}","${p.fileName}","${p.paramName}","${p.unit}",${p.bbox.lat1},${p.bbox.lon1},${p.bbox.lat2},${p.bbox.lon2},${p.stats.min},${p.stats.max},${p.stats.mean},${p.stats.count}\n`;
+  });
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'grib_fusion.csv'; a.click();
+  URL.revokeObjectURL(url);
+  toast('✓ CSV exporté');
+}
+
+function exportFusion() {
+  const sel = Array.from(state.selected);
+  const polys = state.polygons.filter(p => sel.includes(p.id));
+  if (!polys.length) return;
+
+  // Build a minimal GRIB2-like binary (simplified, not full spec — real GRIB needs eccodes)
+  // We encode a JSON manifest in a binary envelope with GRIB-like magic
+  const manifest = {
+    type: 'GRIB_FUSION',
+    created: new Date().toISOString(),
+    sources: [...new Set(polys.map(p => p.fileName))],
+    polygons: polys.map(p => ({
+      id: p.id, label: p.label, source: p.fileName,
+      param: p.paramName, unit: p.unit, date: p.date,
+      bbox: p.bbox, stats: p.stats,
+      values: p.values.slice(0, 200), // truncate for export
+    }))
+  };
+
+  const json     = JSON.stringify(manifest, null, 2);
+  const jsonBytes = new TextEncoder().encode(json);
+
+  // Simple binary wrapper: GRIB magic + edition + length + JSON payload
+  const total = 8 + 4 + jsonBytes.length + 4; // GRIB + edition + len + data + 7777
+  const buf   = new ArrayBuffer(total + 4);
+  const view  = new DataView(buf);
+  const enc   = new TextEncoder();
+  const magicArr = enc.encode('GRIB');
+  new Uint8Array(buf, 0, 4).set(magicArr);
+  view.setUint8(7, 2); // edition 2
+  view.setUint32(8, jsonBytes.length);
+  new Uint8Array(buf, 12, jsonBytes.length).set(jsonBytes);
+  const end = enc.encode('7777');
+  new Uint8Array(buf, 12 + jsonBytes.length, 4).set(end);
+
+  const blob = new Blob([buf], { type: 'application/octet-stream' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url; a.download = 'fusion.grb2'; a.click();
+  URL.revokeObjectURL(url);
+  toast(`✓ GRIB fusionné exporté (${polys.length} polygones, ${[...new Set(polys.map(p=>p.fileName))].length} sources)`);
+}
+
+// ═══════════════════════════════════════════════
+//  TOAST
+// ═══════════════════════════════════════════════
+let toastTimeout;
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimeout);
+  toastTimeout = setTimeout(() => el.classList.remove('show'), 3000);
+}
+
+// ═══════════════════════════════════════════════
+//  DRAG & DROP + INIT
+// ═══════════════════════════════════════════════
+document.addEventListener('DOMContentLoaded', () => {
+  initCanvas();
+
+  const dz = document.getElementById('drop-zone');
+  const fi = document.getElementById('file-input');
+
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); handleFiles(e.dataTransfer.files); });
+  fi.addEventListener('change', e => handleFiles(e.target.files));
+
+  document.getElementById('data-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('data-modal')) closeModal();
+  });
+
+  render();
+  toast('👋 Importez un fichier GRIB pour commencer');
+});
+</script>
+</body>
+</html>
