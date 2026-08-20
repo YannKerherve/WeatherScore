@@ -1,0 +1,343 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Portail d'Accès — WeatherScore</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="icon" type="image/x-icon" href="facion.png">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        ink: '#050810',
+                        signal: '#00d4ff',
+                        signal2: '#0066ff',
+                        borderAlpha: 'rgba(255,255,255,0.08)'
+                    },
+                    fontFamily: {
+                        sans: ['DM Sans', 'sans-serif'],
+                        bebas: ['Bebas Neue', 'sans-serif'],
+                        mono: ['DM Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    
+    <style>
+        body {
+            
+            background-image: url("back.png")
+        }
+        /* Style d'arrière plan en dégradé subtil sans surcharger */
+        .hero-bg {
+            background: radial-gradient(circle at top right, rgba(0, 212, 255, 0.05), transparent 60%),
+                        radial-gradient(circle at bottom left, rgba(0, 102, 255, 0.03), transparent 50%);
+        }
+        /* Masquage propre géré en JS */
+        .auth-hidden { display: none !important; }
+        
+        /* Personnalisation des inputs pour matcher la charte */
+        .custom-input {
+            background: rgba(255, 255, 255, 0.02);
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            color: white;
+            transition: all 0.2s;
+        }
+        .custom-input:focus {
+            outline: none;
+            border-color: #00d4ff;
+            background: rgba(255, 255, 255, 0.04);
+            box-shadow: 0 0 10px rgba(0, 212, 255, 0.1);
+        }
+    </style>
+</head>
+<body class="text-white min-h-screen flex flex-col font-sans hero-bg">
+
+    <main class="flex-grow flex items-center justify-center p-4 sm:p-6 md:p-10">
+        
+        <div class="w-full max-w-5xl flex flex-col md:flex-row border border-borderAlpha rounded-xl overflow-hidden bg-[#0a0f1e]/80 backdrop-blur-md shadow-2xl">
+            
+            <div class="md:w-5/12 bg-gradient-to-br from-[#0c1428] to-ink p-8 md:p-12 flex flex-col justify-between border-b md:border-b-0 md:border-r border-borderAlpha">
+                <div>
+                    <div class="font-mono text-xs text-signal tracking-widest uppercase mb-6">WEATHER SCORE Account</div>
+                    <h2 class="font-bebas text-4xl md:text-5xl tracking-wide leading-tight mb-4 text-white">
+                        Accès Base de Données & <span class="text-signal">Cartographie</span>
+                    </h2>
+                    <p class="text-white/60 text-sm leading-relaxed mb-6 font-light">
+                        Consultez la météo maritime. Créez un compte ou connectez-vous pour débloquer l'accès à la carte interactive en temps réel, aux clés API de routage et aux gribs personnalisés.
+                    </p>
+                </div>
+
+            </div>
+
+            <div class="md:w-7/12 p-8 md:p-12 bg-ink/40 flex flex-col justify-center">
+                
+                <div id="login-section">
+                    <h3 class="font-bebas text-3xl tracking-wide mb-1">Se connecter</h3>
+                    <p class="text-white/50 font-mono text-xs uppercase tracking-wider mb-8">Ravi de vous revoir à bord</p>
+                    
+                    <form id="login-form" class="space-y-5" onsubmit="handleLogin(event)">
+                        <div>
+                            <label class="block font-mono text-[11px] uppercase tracking-wider text-white/70 mb-2">Adresse Email</label>
+                            <input type="email" id="login-email" required placeholder="nav.ahaddock@company.com" class="w-full px-4 py-3 rounded custom-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[11px] uppercase tracking-wider text-white/70 mb-2">Mot de passe</label>
+                            <input type="password" id="login-password" required placeholder="••••••••" class="w-full px-4 py-3 rounded custom-input text-sm">
+                        </div>
+                        
+                        <button type="submit" class="w-full py-3 bg-signal hover:bg-signal/90 text-ink font-bold font-mono text-xs uppercase tracking-wider rounded transition-all shadow-lg shadow-signal/10 mt-2">
+                            Connexion
+                        </button>
+                    </form>
+                    
+                    <div class="mt-8 pt-6 border-t border-borderAlpha text-center">
+                        <p class="text-xs font-mono text-white/40">
+                            Nouveau sur le projet ? 
+                            <button onclick="showSection('signup')" class="text-signal hover:underline ml-1 font-sans font-bold">Créer un compte</button>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="signup-section" class="auth-hidden">
+                    <h3 class="font-bebas text-3xl tracking-wide mb-1">Créer un compte</h3>
+                    <p class="text-white/50 font-mono text-xs uppercase tracking-wider mb-6">100% Gratuit</p>
+                    
+                    <form id="signup-form" class="space-y-4" onsubmit="handleSignup(event)">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label class="block font-mono text-[11px] uppercase tracking-wider text-white/70 mb-1">Nom *</label>
+                                <input type="text" id="signup-lastname" required placeholder="Haddock" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                            </div>
+                            <div>
+                                <label class="block font-mono text-[11px] uppercase tracking-wider text-white/70 mb-1">Prénom *</label>
+                                <input type="text" id="signup-firstname" required placeholder="Archibald" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                            <div>
+                                <label class="block font-mono text-[11px] uppercase tracking-wider text-white/40 mb-1">Navire</label>
+                                <input type="text" id="signup-vessel" placeholder="Karraboudjan" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                            </div>
+                            <div>
+                                <label class="block font-mono text-[11px] uppercase tracking-wider text-white/40 mb-1">Compagnie</label>
+                                <input type="text" id="signup-company" placeholder="RG Shipping Cgnie" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                            </div>
+                            <div>
+                                <label class="block font-mono text-[11px] uppercase tracking-wider text-white/40 mb-1">Grade / Position</label>
+                                <input type="text" id="signup-grade" placeholder="Commandant" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block font-mono text-[11px] uppercase tracking-wider text-white/70 mb-1">Adresse Email *</label>
+                            <input type="email" id="signup-email" required placeholder="nav.ahaddock@company.com" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                        </div>
+                        <div>
+                            <label class="block font-mono text-[11px] uppercase tracking-wider text-white/70 mb-1">Mot de passe *</label>
+                            <input type="password" id="signup-password" required placeholder="••••••••" class="w-full px-4 py-2.5 rounded custom-input text-sm">
+                        </div>
+                        
+                        <button type="submit" class="w-full py-3 bg-gradient-to-r from-signal to-signal2 hover:opacity-90 text-ink font-bold font-mono text-xs uppercase tracking-wider rounded transition-all shadow-lg mt-2">
+                            Valider l'inscription
+                        </button>
+                    </form>
+                    
+                    <div class="mt-6 pt-4 border-t border-borderAlpha text-center">
+                        <p class="text-xs font-mono text-white/40">
+                            Déjà inscrit ? 
+                            <button onclick="showSection('login')" class="text-signal hover:underline ml-1 font-sans font-bold">Se connecter ici</button>
+                        </p>
+                    </div>
+                </div>
+
+                <div id="logged-in-section" class="auth-hidden">
+                    <div class="flex items-center space-x-2 text-emerald-400 font-mono text-xs uppercase tracking-widest mb-2">
+                        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+                        <span>Accès Autorisé & Débloqué</span>
+                    </div>
+                    <h3 class="font-bebas text-3xl tracking-wide mb-6">Votre Profil Navigateur</h3>
+                    
+                    <div class="space-y-6">
+                        <div class="p-5 rounded bg-white/[0.02] border border-borderAlpha space-y-3">
+                            <div class="text-xs font-mono text-white/40 border-b border-borderAlpha pb-1 uppercase tracking-wider">Informations utilisateur</div>
+                            <div class="grid grid-cols-2 gap-y-2 text-sm">
+                                <span class="text-white/50">Nom / Prénom :</span>
+                                <span id="profile-name" class="font-medium text-white">-</span>
+                                
+                                <span class="text-white/50">Email :</span>
+                                <span id="profile-email" class="font-mono text-signal">-</span>
+                                
+                                <span class="text-white/50">Navire :</span>
+                                <span id="profile-vessel" class="text-white">-</span>
+                                
+                                <span class="text-white/50">Compagnie / Grade :</span>
+                                <span id="profile-meta" class="text-white">-</span>
+                            </div>
+                        </div>
+
+                        <div class="p-5 rounded bg-white/[0.02] border border-borderAlpha space-y-3">
+                            <div class="text-xs font-mono text-white/40 border-b border-borderAlpha pb-1 uppercase tracking-wider">Votre Clé d'accès API Personnelle</div>
+                            <div class="flex items-center justify-between bg-black/40 p-3 rounded border border-borderAlpha">
+                                <code id="profile-api-key" class="font-mono text-xs text-emerald-400 tracking-tight break-all">ws_live_4f8a92b...[Générée à la connexion]</code>
+                                <button onclick="navigator.clipboard.writeText(document.getElementById('profile-api-key').innerText); alert('Clé copiée !')" class="text-xs font-mono text-signal hover:underline ml-2 flex-shrink-0">Copier</button>
+                            </div>
+                            <p class="text-[11px] text-white/40 leading-normal">Cette clé vous permet d'interroger directement l'API WeatherScore ou de l'intégrer dans vos outils de routage tiers (Windy plugin, etc.).</p>
+                        </div>
+                        
+                        <div class="flex flex-col sm:flex-row gap-3 pt-2">
+                            <a href="index.html" class="flex-1 text-center py-3 bg-signal text-ink font-bold font-mono text-xs uppercase tracking-wider rounded hover:bg-signal/90 transition-all">
+                                🗺 Accéder à la carte
+                            </a>
+                            <button onclick="handleLogout()" class="py-3 px-6 bg-transparent border border-white/20 hover:border-red-500 hover:text-red-500 font-bold font-mono text-xs uppercase tracking-wider rounded transition-all">
+                                Déconnexion
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </main>
+
+    <footer class="p-6 text-center border-t border-borderAlpha font-mono text-[11px] text-white/30">
+        © 2026 WeatherScore — YK — Tous droits réservés.
+    </footer>
+
+    <script>
+        // --- 1. CONFIGURATION SUPABASE ---
+        // Remplacez ces valeurs par vos vrais identifiants de projet Supabase
+        //const SUPABASE_URL = "https://VOTRE_PROJECT_ID.supabase.co";
+        //const SUPABASE_ANON_KEY = "VOTRE_ANON_PUBLIC_KEY";
+        
+        //let supabase = null;
+        //if(SUPABASE_URL !== "https://VOTRE_PROJECT_ID.supabase.co") {
+        //    supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+        //}
+
+        // --- 2. SWITCH INTERFACE ---
+        function showSection(section) {
+            document.getElementById('login-section').classList.add('auth-hidden');
+            document.getElementById('signup-section').classList.add('auth-hidden');
+            document.getElementById('logged-in-section').classList.add('auth-hidden');
+
+            if(section === 'login') {
+                document.getElementById('login-section').classList.remove('auth-hidden');
+            } else if(section === 'signup') {
+                document.getElementById('signup-section').classList.remove('auth-hidden');
+            } else if(section === 'profile') {
+                document.getElementById('logged-in-section').classList.remove('auth-hidden');
+            }
+        }
+
+        // --- 3. EXÉCUTION CONNEXION (LOGIN) ---
+        async function handleLogin(e) {
+            e.preventDefault();
+            const email = document.getElementById('login-email').value;
+            const password = document.getElementById('login-password').value;
+
+            if(!supabase) {
+                // Simulation locale si Supabase n'est pas encore configuré
+                alert("[Mode Démo] Connexion réussie ! (Pensez à configurer Supabase)");
+                updateProfileUI({
+                    firstname: "Archibald", lastname: "Haddock", email: email,
+                    vessel: "Karraboudjan", company: "RG Shipping", grade: "Master"
+                });
+                return;
+            }
+
+            try {
+                const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+                if (error) throw error;
+                
+                // Récupération des données utilisateur additionnelles stockées dans les métadonnées
+                const userMetadata = data.user.user_metadata;
+                updateProfileUI({
+                    firstname: userMetadata.first_name || '',
+                    lastname: userMetadata.last_name || '',
+                    email: data.user.email,
+                    vessel: userMetadata.vessel || 'N/A',
+                    company: userMetadata.company || 'N/A',
+                    grade: userMetadata.grade || 'N/A'
+                });
+            } catch (err) {
+                alert("Erreur de connexion : " + err.message);
+            }
+        }
+
+        // --- 4. EXÉCUTION INSCRIPTION (REGISTER) ---
+        async function handleSignup(e) {
+            e.preventDefault();
+            const email = document.getElementById('signup-email').value;
+            const password = document.getElementById('signup-password').value;
+            const firstname = document.getElementById('signup-firstname').value;
+            const lastname = document.getElementById('signup-lastname').value;
+            const vessel = document.getElementById('signup-vessel').value;
+            const company = document.getElementById('signup-company').value;
+            const grade = document.getElementById('signup-grade').value;
+
+            if(!supabase) {
+                alert("[Mode Démo] Compte simulé avec succès ! Connexion automatique.");
+                updateProfileUI({ firstname, lastname, email, vessel, company, grade });
+                return;
+            }
+
+            try {
+                // Inscription avec insertion des métadonnées personnalisées (options.data)
+                const { data, error } = await supabase.auth.signUp({
+                    email,
+                    password,
+                    options: {
+                        data: {
+                            first_name: firstname,
+                            last_name: lastname,
+                            vessel: vessel,
+                            company: company,
+                            grade: grade
+                        }
+                    }
+                });
+                if (error) throw error;
+                
+                alert("Compte créé ! Si la confirmation par mail est activée, vérifiez votre boîte de réception.");
+                showSection('login');
+            } catch (err) {
+                alert("Erreur d'inscription : " + err.message);
+            }
+        }
+
+        // --- 5. ENRICHISSEMENT DE LA VUE PROFIL DEBLOQUÉ ---
+        function updateProfileUI(user) {
+            document.getElementById('profile-name').innerText = `${user.firstname} ${user.lastname.toUpperCase()}`;
+            document.getElementById('profile-email').innerText = user.email;
+            document.getElementById('profile-vessel').innerText = user.vessel || 'Non renseigné';
+            document.getElementById('profile-meta').innerText = `${user.company || 'N/A'} / ${user.grade || 'N/A'}`;
+            
+            // Génération factice d'une clé d'API tokenisée basée sur son nom pour la présentation
+            const fakeToken = "ws_live_" + btoa(user.email).substring(0, 16) + "_" + Math.floor(Math.random() * 89999 + 10000);
+            document.getElementById('profile-api-key').innerText = fakeToken;
+            
+            showSection('profile');
+        }
+
+        // --- 6. DÉCONNEXION ---
+        async function handleLogout() {
+            if(supabase) await supabase.auth.signOut();
+            document.getElementById('login-form').reset();
+            document.getElementById('signup-form').reset();
+            showSection('login');
+        }
+    </script>
+</body>
+</html>
