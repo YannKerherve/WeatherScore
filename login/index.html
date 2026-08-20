@@ -4,8 +4,6 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Portail d'Accès — WeatherScore</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="supabase-client.js"></script>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="icon" type="image/x-icon" href="facion.png">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -217,27 +215,42 @@
         © 2026 WeatherScore — YK — Tous droits réservés.
     </footer>
 
-    <script>
-// Vérifier la session au chargement de la page
+<script>
+// --- 1. VÉRIFICATION DE SESSION AU CHARGEMENT ---
 document.addEventListener('DOMContentLoaded', async () => {
     const { data: { session } } = await supabase.auth.getSession() ;
+    
     if (session) {
-        window.location.href = "profile.html" ; // Redirige si déjà connecté
+        const user = session.user ;
+        const meta = user.user_metadata || {} ;
+        
+        updateProfileUI({
+            firstname: meta.first_name || '',
+            lastname: meta.last_name || '',
+            email: user.email,
+            vessel: meta.vessel || 'N/A',
+            company: meta.company || 'N/A',
+            grade: meta.grade || 'N/A'
+        }) ;
     }
 }) ;
 
+// --- 2. GESTION DE L'AFFICHAGE DES SECTIONS ---
 function showSection(section) {
     document.getElementById('login-section').classList.add('auth-hidden') ;
     document.getElementById('signup-section').classList.add('auth-hidden') ;
+    document.getElementById('logged-in-section').classList.add('auth-hidden') ;
 
     if (section === 'login') {
         document.getElementById('login-section').classList.remove('auth-hidden') ;
     } else if (section === 'signup') {
         document.getElementById('signup-section').classList.remove('auth-hidden') ;
+    } else if (section === 'profile') {
+        document.getElementById('logged-in-section').classList.remove('auth-hidden') ;
     }
 }
 
-// Inscription
+// --- 3. INSCRIPTION ---
 async function handleSignup(e) {
     e.preventDefault() ;
     const email = document.getElementById('signup-email').value ;
@@ -265,14 +278,19 @@ async function handleSignup(e) {
 
         if (error) throw error ;
 
-        alert("Inscription réussie ! Vérifie ton adresse mail pour valider ton compte (si option activée), puis connecte-toi.") ;
-        showSection('login') ;
+        alert("Inscription réussie ! Connexion en cours...") ;
+        
+        if (data.session) {
+            updateProfileUI({ firstname, lastname, email, vessel, company, grade }) ;
+        } else {
+            showSection('login') ;
+        }
     } catch (err) {
         alert("Erreur d'inscription : " + err.message) ;
     }
 }
 
-// Connexion
+// --- 4. CONNEXION ---
 async function handleLogin(e) {
     e.preventDefault() ;
     const email = document.getElementById('login-email').value ;
@@ -282,33 +300,40 @@ async function handleLogin(e) {
         const { data, error } = await supabase.auth.signInWithPassword({ email, password }) ;
         if (error) throw error ;
 
-        // Redirection vers l'espace profil
-        window.location.href = "profile.html" ;
+        const meta = data.user.user_metadata || {} ;
+        updateProfileUI({
+            firstname: meta.first_name || '',
+            lastname: meta.last_name || '',
+            email: data.user.email,
+            vessel: meta.vessel || 'N/A',
+            company: meta.company || 'N/A',
+            grade: meta.grade || 'N/A'
+        }) ;
     } catch (err) {
         alert("Erreur de connexion : " + err.message) ;
     }
 }
-        // --- 5. ENRICHISSEMENT DE LA VUE PROFIL DEBLOQUÉ ---
-        function updateProfileUI(user) {
-            document.getElementById('profile-name').innerText = `${user.firstname} ${user.lastname.toUpperCase()}`;
-            document.getElementById('profile-email').innerText = user.email;
-            document.getElementById('profile-vessel').innerText = user.vessel || 'Non renseigné';
-            document.getElementById('profile-meta').innerText = `${user.company || 'N/A'} / ${user.grade || 'N/A'}`;
-            
-            // Génération factice d'une clé d'API tokenisée basée sur son nom pour la présentation
-            const fakeToken = "ws_live_" + btoa(user.email).substring(0, 16) + "_" + Math.floor(Math.random() * 89999 + 10000);
-            document.getElementById('profile-api-key').innerText = fakeToken;
-            
-            showSection('profile');
-        }
 
-        // --- 6. DÉCONNEXION ---
-        async function handleLogout() {
-            if(supabase) await supabase.auth.signOut();
-            document.getElementById('login-form').reset();
-            document.getElementById('signup-form').reset();
-            showSection('login');
-        }
-    </script>
+// --- 5. MISE À JOUR DU PROFIL ---
+function updateProfileUI(user) {
+    document.getElementById('profile-name').innerText = `${user.firstname} ${user.lastname.toUpperCase()}` ;
+    document.getElementById('profile-email').innerText = user.email ;
+    document.getElementById('profile-vessel').innerText = user.vessel || 'Non renseigné' ;
+    document.getElementById('profile-meta').innerText = `${user.company || 'N/A'} / ${user.grade || 'N/A'}` ;
+    
+    const fakeToken = "ws_live_" + btoa(user.email).substring(0, 16) + "_" + Math.floor(Math.random() * 89999 + 10000) ;
+    document.getElementById('profile-api-key').innerText = fakeToken ;
+    
+    showSection('profile') ;
+}
+
+// --- 6. DÉCONNEXION ---
+async function handleLogout() {
+    await supabase.auth.signOut() ;
+    document.getElementById('login-form').reset() ;
+    document.getElementById('signup-form').reset() ;
+    showSection('login') ;
+}
+</script>
 </body>
 </html>
