@@ -473,17 +473,20 @@ nav.top-nav a:hover, nav.top-nav a.active {
 <!-- Client Supabase JS CDN -->
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-<script>
-  // 1. Initialisation Supabase
-  const SUPABASE_URL = 'https://TON_PROJET.supabase.co';
-  const SUPABASE_ANON_KEY = 'TA_CLE_ANON_PUBLIC';
-  const supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+<!-- Client Supabase JS CDN -->
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<!-- Client partagé (le même que sur la page de login) -->
+<script src="supabase-client.js"></script>
 
-  // 2. Chargement des données de session et de profil
+<script>
+  // Récupération du client partagé depuis supabase-client.js
+  const supabaseClient = window.supabaseClient;
+
   async function loadUserProfile() {
     const { data: { session }, error } = await supabaseClient.auth.getSession();
 
     if (error || !session) {
+      // Redirige vers la page de connexion/accueil uniquement si aucune session n'existe
       window.location.href = 'index.html';
       return;
     }
@@ -491,30 +494,26 @@ nav.top-nav a:hover, nav.top-nav a.active {
     const user = session.user;
     const meta = user.user_metadata || {};
 
-    // Nom & Prénom
-    const displayName = (meta.first_name && meta.last_name) 
-      ? `${meta.first_name} ${meta.last_name.toUpperCase()}`
-      : (meta.full_name || meta.name || user.email.split('@')[0]);
-    
+    // Affichage des informations
     const profileNameEl = document.querySelector('.profile-name');
-    if (profileNameEl) profileNameEl.textContent = displayName;
+    if (profileNameEl) {
+      profileNameEl.textContent = (meta.first_name && meta.last_name)
+        ? `${meta.first_name} ${meta.last_name.toUpperCase()}`
+        : (meta.full_name || meta.name || user.email.split('@')[0]);
+    }
 
-    // Rôle / Position
     const profileRankEl = document.querySelector('.profile-rank');
     if (profileRankEl && (meta.grade || meta.role)) {
       profileRankEl.textContent = meta.grade || meta.role;
     }
 
-    // Email
     const emailEl = document.querySelector('.info-value[style*="color: var(--signal)"]');
     if (emailEl) emailEl.textContent = user.email;
 
-    // Compagnie & Navire
     const infoValues = document.querySelectorAll('.info-value');
     if (infoValues[0]) infoValues[0].textContent = meta.company || 'Non renseigné';
     if (infoValues[1]) infoValues[1].textContent = meta.vessel || meta.ship || 'Non renseigné';
 
-    // Clé API
     const apiKeyEl = document.querySelector('.code-inline');
     if (apiKeyEl) {
       const token = "ws_live_" + btoa(user.email).substring(0, 16) + "_" + Math.floor(Math.random() * 89999 + 10000);
@@ -522,18 +521,15 @@ nav.top-nav a:hover, nav.top-nav a.active {
     }
   }
 
-  // 3. Gestion de la déconnexion
   async function handleLogout(e) {
     if (e) e.preventDefault();
     await supabaseClient.auth.signOut();
     window.location.href = 'index.html';
   }
 
-  // 4. Écouteurs d'événements au chargement
   document.addEventListener('DOMContentLoaded', () => {
     loadUserProfile();
 
-    // Association de la déconnexion au lien "Se déconnecter"
     const logoutLinks = document.querySelectorAll('a[href="#"]');
     logoutLinks.forEach(link => {
       if (link.textContent.toLowerCase().includes('déconnecter')) {
