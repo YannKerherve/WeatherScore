@@ -3,244 +3,428 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>404</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
+
+<title>404 — Page introuvable</title>
+
 <link rel="icon" type="image/x-icon" href="facion.png">
+
+<link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
 <link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+
 <style>
-/* ─── BASE & COULEURS (Identique à company.html) ─── */
-*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
 
 :root {
   --ink: #050810;
   --signal: #00d4ff;
   --signal2: #0066ff;
+
   --border: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(0, 212, 255, 0.45);
+
   --text-dim: rgba(255, 255, 255, 0.5);
+
   --font-sans: 'DM Sans', sans-serif;
   --font-mono: 'DM Mono', monospace;
 }
 
+/* =========================
+   BASE
+========================= */
+
 body {
-  background-color: var(--ink);
+  min-height: 100vh;
+
+  background:
+    radial-gradient(
+      circle at 50% 30%,
+      rgba(0, 102, 255, 0.08),
+      transparent 45%
+    ),
+    var(--ink);
+
   color: #ffffff;
+
   font-family: var(--font-sans);
   line-height: 1.6;
+
   -webkit-font-smoothing: antialiased;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
-/* ─── LAYOUT & PANELS ─── */
+/* =========================
+   CONTAINER
+========================= */
+
 .container {
+  width: 100%;
   max-width: 1100px;
+
   margin: 0 auto;
+
   padding: 40px 20px;
 }
 
+/* =========================
+   HEADER
+========================= */
+
 header {
+  text-align: center;
+
   border-bottom: 1px solid var(--border);
+
   padding-bottom: 40px;
   margin-bottom: 40px;
-  align-items: center;
 }
 
 .brand {
   font-family: var(--font-mono);
+
   font-size: 11px;
+
   color: var(--signal);
-  letter-spacing: 2px;
+
+  letter-spacing: 3px;
+
   text-transform: uppercase;
-  margin-bottom: 10px;
+
+  margin-bottom: 14px;
 }
 
 h1 {
   font-family: 'Bebas Neue', sans-serif;
-  font-size: 56px;
+
+  font-size: clamp(42px, 7vw, 70px);
+
   letter-spacing: 1px;
-  line-height: 1;
+
+  line-height: 1.05;
 }
 
-h1 span { color: var(--signal); }
+h1 span {
+  color: var(--signal);
+}
 
 .subtitle {
   color: var(--text-dim);
+
   font-size: 14px;
+
   max-width: 600px;
-  margin-top: 15px;
+
+  margin: 18px auto 0;
+
   font-weight: 300;
 }
 
-.btn-back {
+/* =========================
+   ERROR CODE
+========================= */
+
+.error-code {
   font-family: var(--font-mono);
-  font-size: 11px;
-  text-transform: uppercase;
-  color: #ffffff;
-  text-decoration: none;
-  padding: 10px 20px;
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  transition: border-color 0.2s;
-}
-.btn-back:hover { border-color: var(--signal); }
 
-.grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 40px;
-}
-@media (min-width: 850px) {
-  .grid { grid-template-columns: 320px 1fr; }
-}
+  font-size: 12px;
 
-.sidebar { display: flex; flex-direction: column; gap: 30px; }
+  color: #00ff88;
 
-/* ─── BLOCS TECHNIQUE ─── */
-.panel {
-  border: 1px solid var(--border);
-  border-radius: 6px;
-  padding: 25px;
-  background: rgba(255,255,255,0.01);
-}
+  margin-bottom: 8px;
 
-.panel-title {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 24px;
   letter-spacing: 1px;
-  margin-bottom: 15px;
 }
 
-.meta-label {
+.error-code::before {
+  content: "> ";
+  color: var(--signal);
+}
+
+/* =========================
+   BUTTON GRID
+========================= */
+
+.grid-cards {
+  display: grid;
+
+  grid-template-columns: 1fr;
+
+  gap: 15px;
+
+  max-width: 700px;
+
+  margin: 0 auto;
+}
+
+@media (min-width: 650px) {
+  .grid-cards {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* =========================
+   BUTTON
+========================= */
+
+.error-button {
+  display: flex;
+
+  align-items: center;
+  justify-content: center;
+
+  min-height: 115px;
+
+  padding: 20px;
+
+  background: rgba(255, 255, 255, 0.015);
+
+  border: 1px solid var(--border);
+
+  border-radius: 6px;
+
+  color: white;
+
+  text-decoration: none;
+
+  transition:
+    transform 0.2s ease,
+    border-color 0.2s ease,
+    background 0.2s ease,
+    box-shadow 0.2s ease;
+}
+
+.error-button:hover {
+  transform: translateY(-3px);
+
+  border-color: var(--border-hover);
+
+  background: rgba(0, 212, 255, 0.035);
+
+  box-shadow:
+    0 10px 35px rgba(0, 0, 0, 0.25),
+    0 0 25px rgba(0, 212, 255, 0.05);
+}
+
+.error-button:active {
+  transform: translateY(0);
+}
+
+/* =========================
+   CARD CONTENT
+========================= */
+
+.logo-card {
+  width: 100%;
+
+  text-align: center;
+}
+
+.card-icon {
   font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--text-dim);
-  text-transform: uppercase;
+
+  font-size: 18px;
+
+  color: var(--signal);
+
   margin-bottom: 8px;
 }
 
-.code-box {
+.card-title {
   font-family: var(--font-mono);
+
   font-size: 12px;
-  background: rgba(0, 0, 0, 0.4);
-  border: 1px solid var(--border);
-  padding: 12px;
-  border-radius: 4px;
-  word-break: break-all;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
 
-.code-box code { color: #00ff88; }
-.code-box.url code { color: #ffffff; }
-
-.btn-copy {
-  background: none;
-  border: none;
-  color: var(--signal);
-  font-family: var(--font-mono);
-  font-size: 11px;
-  cursor: pointer;
-  margin-left: 15px;
-}
-.btn-copy:hover { text-decoration: underline; }
-
-/* ─── TABLEAU COMPACT ─── */
-section { margin-bottom: 45px; }
-section h2 {
-  font-family: 'Bebas Neue', sans-serif;
-  font-size: 28px;
-  letter-spacing: 1px;
-  margin-bottom: 20px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-family: var(--font-mono);
-  font-size: 12px;
-  margin-top: 15px;
-}
-
-th {
-  color: var(--text-dim);
-  text-transform: uppercase;
-  font-size: 10px;
-  padding: 12px;
-  border-bottom: 1px solid var(--border);
-  text-align: left;
-}
-
-td {
-  padding: 14px 12px;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
-}
-
-.param-name { color: var(--signal); font-weight: 500; }
-.param-type { color: #ff6b35; }
-
-/* ─── SUB-GRID TYPES ─── */
-.sub-grid {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: 20px;
-}
-@media (min-width: 650px) {
-  .sub-grid { grid-template-columns: 1fr 1fr; }
-}
-
-.type-item {
-  background: rgba(255,255,255,0.01);
-  border: 1px solid var(--border);
-  border-radius: 4px;
-  padding: 15px;
-}
-
-.type-header {
-  font-family: var(--font-mono);
-  font-size: 12px;
   font-weight: 500;
-  color: var(--signal);
-  margin-bottom: 5px;
-  display: flex;
-  justify-content: space-between;
-  
-}
-.type-header.text-mode { color: #00ff88; }
 
-.type-desc {
-  font-size: 12px;
+  color: #ffffff;
+
+  text-transform: uppercase;
+
+  letter-spacing: 1px;
+
+  margin-bottom: 6px;
+}
+
+.card-description {
+  font-family: var(--font-sans);
+
+  font-size: 11px;
+
   color: var(--text-dim);
+
   font-weight: 300;
 }
 
-pre {
-  background: rgba(0,0,0,0.4);
-  border: 1px solid var(--border);
-  padding: 15px;
-  border-radius: 4px;
+/* =========================
+   FOOTER
+========================= */
+
+.footer {
+  text-align: center;
+
+  margin-top: 40px;
+
   font-family: var(--font-mono);
-  font-size: 12px;
-  color: #00ff88;
-  overflow-x: auto;
+
+  font-size: 10px;
+
+  color: rgba(255,255,255,0.25);
+
+  text-transform: uppercase;
+
+  letter-spacing: 1px;
 }
+
+.footer span {
+  color: var(--signal);
+}
+
+/* =========================
+   MOBILE
+========================= */
+
+@media (max-width: 500px) {
+
+  .container {
+    padding: 30px 15px;
+  }
+
+  header {
+    padding-bottom: 30px;
+    margin-bottom: 30px;
+  }
+
+  h1 {
+    font-size: 45px;
+  }
+
+  .subtitle {
+    font-size: 13px;
+  }
+
+  .grid-cards {
+    gap: 10px;
+  }
+
+  .error-button {
+    min-height: 95px;
+  }
+}
+
 </style>
 </head>
+
 <body>
 
 <div class="container">
 
   <header>
-    <div>
-      <center><div class="brand">Erreure 404</div></center>
-      <center><h1>La page demandée <span>n'existe pas</span> !</h1></center>
-      <center><div class="subtitle">ou votre compte utilisateur ne permet pas d'y accéder.</div></center>
+
+    <div class="error-code">
+      ERROR 404
     </div>
+
+    <div class="brand">
+      Erreur système
+    </div>
+
+    <h1>
+      La page demandée
+      <span>n'existe pas</span>
+    </h1>
+
+    <div class="subtitle">
+      La ressource que vous recherchez est introuvable,
+      a été déplacée ou votre compte utilisateur ne permet pas d'y accéder.
+    </div>
+
   </header>
+
+
+  <div class="grid-cards">
+
+    <!-- ACCUEIL -->
+    <a href="index.html" class="error-button">
+
+      <div class="logo-card">
+
+        <div class="card-icon">
+          [01]
+        </div>
+
+        <div class="card-title">
+          Accueil
+        </div>
+
+        <div class="card-description">
+          Retourner à la page principale
+        </div>
+
+      </div>
+
+    </a>
+
+
+    <!-- RETOUR -->
+    <a href="javascript:history.back()" class="error-button">
+
+      <div class="logo-card">
+
+        <div class="card-icon">
+          [02]
+        </div>
+
+        <div class="card-title">
+          Retour
+        </div>
+
+        <div class="card-description">
+          Revenir à la page précédente
+        </div>
+
+      </div>
+
+    </a>
+
+
+    <!-- CONNEXION -->
+    <a href="login.html" class="error-button">
+
+      <div class="logo-card">
+
+        <div class="card-icon">
+          [03]
+        </div>
+
+        <div class="card-title">
+          Se connecter
+        </div>
+
+        <div class="card-description">
+          Accéder à votre compte
+        </div>
+
+      </div>
+
+    </a>
+
   </div>
 
-  <center><div class="grid-cards" style="grid-template-columns: repeat(2,1);">
-        <button><div class="logo-card" style="padding:15px;"><p style="color:#050810; font-size:13px; font-weight:bold;">Acceuil</p><span style="font-size:11px; color:var(--text-dim)">Essayez de revenir en arrière...</span></div></button>
-        <button><div class="logo-card" style="padding:15px;"><p style="color:#050810; font-size:13px; font-weight:bold;">Se connecter</p><span style="font-size:11px; color:var(--text-dim)">...ou connectez vous !</span></div></button>
-  </div></center>
+
+  <div class="footer">
+    <span>404</span> // Resource not found
+  </div>
+
+</div>
 
 </body>
+</html>
