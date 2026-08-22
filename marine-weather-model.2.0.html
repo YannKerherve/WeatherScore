@@ -405,18 +405,10 @@ td:first-child { text-align: left; padding-left: 14px; }
 .li { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
 .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 </style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 </head>
 <body>
-<div id="login-overlay">
-  <div id="login-box">
-    <h2>WeatherScore </h2>
-<h2><small style="font-size: 10px; opacity: 0.5;">v0.1 Alpha</small></h2>
-    <input type="password" id="pass-input" placeholder="Mot de passe">
-    <br>
-    <button onclick="checkPass()">Entrer</button>
-    <div id="error" class="error-msg">Accès refusé</div>
-  </div>
-</div>
 <div id="map"></div>
 
 <img id="map-logo" src="ENSM.png" alt="Logo">
@@ -635,34 +627,27 @@ td:first-child { text-align: left; padding-left: 14px; }
 <script>
 let allPoints = null;
 // ══════════════════════════════════════════════
+// VÉRIFICATION DE SESSION SUPABASE
 // ══════════════════════════════════════════════
-// MOT DE PASSE
-// ══════════════════════════════════════════════
-function checkPass() {
-  const input = document.getElementById('pass-input').value;
-  const error = document.getElementById('error');
-  if (input === 'hydro') {
-    const overlay = document.getElementById('login-overlay');
-    overlay.style.opacity = '0';
-    setTimeout(() => { overlay.style.display = 'none'; }, 500);
-    sessionStorage.setItem('access_granted', 'true');
-    loadMarineData();
-  } else {
-    error.style.display = 'block';
-    document.getElementById('pass-input').value = '';
+const supabaseClient = window.supabaseClient;
+
+async function checkAuth() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+  if (error || !session) {
+    // Redirection vers la page de connexion si aucune session n'est active
+    window.location.href = 'https://yannkerherve.github.io/WeatherScore/login/index.html';
+    return;
   }
+
+  // Masque l'overlay de chargement/connexion et charge les données marines
+  const overlay = document.getElementById('login-overlay');
+  if (overlay) overlay.style.display = 'none';
+  
+  loadMarineData();
 }
-document.getElementById('pass-input')?.addEventListener('keypress', e => {
-  if (e.key === 'Enter') checkPass();
-});
-window.addEventListener('load', () => {
-  if (sessionStorage.getItem('access_granted') === 'true') {
-    document.getElementById('login-overlay').style.display = 'none';
-    loadMarineData();
-  } else {
-    document.getElementById('pass-input').focus();
-  }
-});
+
+window.addEventListener('load', checkAuth);
 
 // ══════════════════════════════════════════════
 // MAP
