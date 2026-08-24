@@ -1,152 +1,248 @@
 <!DOCTYPE html>
 <html lang="fr">
+
 <head>
+
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
     <link rel="icon" type="image/png" href="facion.png">
 
-    <title>DatExpl WeatherScore </title>
+    <title>DatExpl WeatherScore</title>
 
     <!-- Leaflet -->
     <link
         rel="stylesheet"
         href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    />
+    >
+
+    <!-- PapaParse : lecture robuste des CSV -->
+    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.3/papaparse.min.js"></script>
+
 
     <style>
+
         * {
             box-sizing: border-box;
         }
 
         html,
         body {
+
             margin: 0;
+
             width: 100%;
             height: 100%;
-            font-family: Inter, Arial, sans-serif;
-            background: #f5f6f8;
+
+            font-family:
+                Inter,
+                -apple-system,
+                BlinkMacSystemFont,
+                "Segoe UI",
+                Arial,
+                sans-serif;
+
+            background: #f4f5f7;
+
             color: #1f2937;
+
             overflow: hidden;
         }
 
-        /* =========================
-           MAIN LAYOUT
-        ========================= */
+
+        /* =========================================================
+           APPLICATION
+        ========================================================= */
 
         .app {
+
             display: flex;
+
             width: 100%;
             height: 100vh;
         }
 
-        /* =========================
+
+        /* =========================================================
            MAP
-        ========================= */
+        ========================================================= */
 
         .map-container {
+
             position: relative;
+
             flex: 1;
+
             min-width: 0;
+
             height: 100%;
         }
 
+
         #map {
+
             width: 100%;
             height: 100%;
         }
 
-        /* Small map overlay */
+
+        /* =========================================================
+           MAP STATUS
+        ========================================================= */
 
         .map-status {
+
             position: absolute;
+
             top: 18px;
             left: 18px;
+
             z-index: 1000;
 
-            padding: 8px 12px;
+            padding: 9px 13px;
 
-            background: rgba(255, 255, 255, 0.94);
-            border: 1px solid #e5e7eb;
+            background:
+                rgba(255, 255, 255, 0.95);
+
+            border:
+                1px solid #e5e7eb;
+
             border-radius: 8px;
 
             font-size: 12px;
+
             color: #6b7280;
 
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08);
+            box-shadow:
+                0 3px 14px rgba(0, 0, 0, 0.08);
         }
 
-        /* =========================
+
+        /* =========================================================
            SIDEBAR
-        ========================= */
+        ========================================================= */
 
         .sidebar {
-            width: 360px;
+
+            width: 390px;
+
             height: 100%;
 
             background: #ffffff;
-            border-left: 1px solid #e5e7eb;
+
+            border-left:
+                1px solid #e5e7eb;
 
             display: flex;
+
             flex-direction: column;
 
             overflow-y: auto;
         }
 
-        .sidebar-header {
-            padding: 24px 22px 20px;
 
-            border-bottom: 1px solid #e5e7eb;
+        /* =========================================================
+           HEADER
+        ========================================================= */
+
+        .sidebar-header {
+
+            padding:
+                24px 22px 20px;
+
+            border-bottom:
+                1px solid #e5e7eb;
         }
 
+
         .sidebar-header h1 {
+
             margin: 0;
 
             font-size: 19px;
+
             font-weight: 650;
+
             letter-spacing: -0.02em;
 
             color: #111827;
         }
 
+
         .sidebar-header p {
-            margin: 6px 0 0;
+
+            margin:
+                6px 0 12px;
 
             font-size: 12px;
+
             line-height: 1.5;
 
             color: #6b7280;
         }
 
-        /* =========================
-           SECTIONS
-        ========================= */
 
-        .section {
-            padding: 20px 22px;
+        .back-link {
 
-            border-bottom: 1px solid #eef0f2;
+            font-size: 11px;
+
+            color: #6b7280;
+
+            text-decoration: none;
         }
 
+
+        .back-link:hover {
+
+            color: #2563eb;
+        }
+
+
+        /* =========================================================
+           SECTIONS
+        ========================================================= */
+
+        .section {
+
+            padding:
+                20px 22px;
+
+            border-bottom:
+                1px solid #eef0f2;
+        }
+
+
         .section-title {
+
             margin-bottom: 12px;
 
             font-size: 11px;
+
             font-weight: 700;
+
             text-transform: uppercase;
+
             letter-spacing: 0.08em;
 
             color: #6b7280;
         }
 
-        /* =========================
+
+        /* =========================================================
            FILE IMPORT
-        ========================= */
+        ========================================================= */
 
         .file-drop {
+
+            display: block;
+
             width: 100%;
+
             padding: 18px;
 
-            border: 1px dashed #d1d5db;
+            border:
+                1px dashed #cfd4da;
+
             border-radius: 9px;
 
             background: #fafafa;
@@ -160,72 +256,103 @@
                 background 0.15s ease;
         }
 
+
         .file-drop:hover {
+
             border-color: #9ca3af;
+
             background: #f7f7f8;
         }
 
+
         .file-drop strong {
+
             display: block;
 
             font-size: 13px;
+
             font-weight: 600;
 
             color: #374151;
         }
 
+
         .file-drop span {
+
             display: block;
 
             margin-top: 5px;
 
             font-size: 11px;
+
             color: #9ca3af;
         }
 
+
         #fileInput {
+
             display: none;
         }
 
+
         .file-info {
+
             display: none;
 
             margin-top: 10px;
+
             padding: 10px;
 
             border-radius: 7px;
+
             background: #f3f4f6;
 
-            font-size: 12px;
+            font-size: 11px;
+
+            line-height: 1.5;
+
             color: #4b5563;
         }
 
-        /* =========================
-           RADIUS
-        ========================= */
+
+        /* =========================================================
+           RAYON
+        ========================================================= */
 
         .radius-value {
+
             display: flex;
+
             align-items: baseline;
+
             gap: 5px;
 
             margin-bottom: 12px;
         }
 
+
         .radius-number {
-            font-size: 24px;
+
+            font-size: 25px;
+
             font-weight: 650;
+
             letter-spacing: -0.03em;
 
             color: #111827;
         }
 
+
         .radius-unit {
+
             font-size: 12px;
+
             color: #6b7280;
         }
 
+
         input[type="range"] {
+
             width: 100%;
 
             accent-color: #2563eb;
@@ -233,215 +360,439 @@
             cursor: pointer;
         }
 
+
         .range-labels {
+
             display: flex;
+
             justify-content: space-between;
 
             margin-top: 5px;
 
             font-size: 10px;
+
             color: #9ca3af;
         }
 
-        /* =========================
-           SELECTED POSITION
-        ========================= */
+
+        /* =========================================================
+           POSITION
+        ========================================================= */
 
         .position-box {
+
             padding: 12px;
 
             border-radius: 8px;
 
             background: #f8fafc;
-            border: 1px solid #e5e7eb;
+
+            border:
+                1px solid #e5e7eb;
         }
+
 
         .position-row {
+
             display: flex;
+
             justify-content: space-between;
 
-            margin-bottom: 5px;
+            margin-bottom: 6px;
         }
 
+
         .position-row:last-child {
+
             margin-bottom: 0;
         }
 
+
         .position-label {
+
             font-size: 11px;
+
             color: #9ca3af;
         }
 
+
         .position-value {
+
             font-size: 11px;
+
             font-family: monospace;
+
             color: #374151;
         }
 
-        /* =========================
-           DATA SUMMARY
-        ========================= */
+
+        /* =========================================================
+           SUMMARY
+        ========================================================= */
 
         .data-summary {
+
             display: grid;
-            grid-template-columns: 1fr 1fr;
+
+            grid-template-columns:
+                1fr 1fr;
 
             gap: 8px;
         }
 
+
         .stat {
+
             padding: 12px;
 
-            border: 1px solid #e5e7eb;
+            border:
+                1px solid #e5e7eb;
+
             border-radius: 8px;
 
             background: #ffffff;
         }
 
+
         .stat-label {
+
             font-size: 10px;
+
             color: #9ca3af;
         }
 
+
         .stat-value {
+
             margin-top: 4px;
 
             font-size: 17px;
+
             font-weight: 650;
 
             color: #111827;
         }
 
-        /* =========================
+
+        /* =========================================================
+           SOURCE FILTERS
+        ========================================================= */
+
+        .source-list {
+
+            display: flex;
+
+            flex-wrap: wrap;
+
+            gap: 6px;
+        }
+
+
+        .source-button {
+
+            padding:
+                6px 9px;
+
+            border:
+                1px solid #e1e5e9;
+
+            border-radius: 6px;
+
+            background: #ffffff;
+
+            font-size: 10px;
+
+            color: #6b7280;
+
+            cursor: pointer;
+        }
+
+
+        .source-button.active {
+
+            border-color: #2563eb;
+
+            background: #eff6ff;
+
+            color: #2563eb;
+        }
+
+
+        /* =========================================================
            WEATHER DATA
-        ========================= */
+        ========================================================= */
 
         .weather-data {
+
             display: flex;
+
             flex-direction: column;
+
             gap: 7px;
         }
 
+
         .weather-placeholder {
-            padding: 20px 10px;
+
+            padding:
+                20px 10px;
 
             text-align: center;
 
             font-size: 12px;
+
             line-height: 1.5;
 
             color: #9ca3af;
         }
 
-        .weather-row {
+
+        .weather-record {
+
+            padding: 10px;
+
+            border:
+                1px solid #e5e7eb;
+
+            border-radius: 8px;
+
+            background: #fafbfc;
+        }
+
+
+        .weather-record-header {
+
             display: flex;
+
             justify-content: space-between;
-            align-items: center;
 
-            padding: 9px 10px;
+            gap: 10px;
 
-            border-radius: 7px;
-            background: #f8fafc;
+            margin-bottom: 7px;
         }
 
-        .weather-name {
-            font-size: 12px;
-            color: #4b5563;
-        }
 
-        .weather-value {
-            font-size: 12px;
-            font-weight: 600;
-            color: #111827;
-        }
-
-        /* =========================
-           FOOTER
-        ========================= */
-
-        .sidebar-footer {
-            margin-top: auto;
-
-            padding: 15px 22px;
-
-            border-top: 1px solid #eef0f2;
+        .weather-source {
 
             font-size: 10px;
+
+            font-weight: 700;
+
+            color: #374151;
+        }
+
+
+        .weather-distance {
+
+            font-size: 10px;
+
+            color: #2563eb;
+
+            white-space: nowrap;
+        }
+
+
+        .weather-meta {
+
+            margin-bottom: 8px;
+
+            font-size: 10px;
+
             color: #9ca3af;
         }
 
-        /* =========================
-           LEAFLET
-        ========================= */
 
-        .leaflet-control-zoom {
-            border: none !important;
-            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.08) !important;
+        .weather-variable {
+
+            display: flex;
+
+            justify-content: space-between;
+
+            gap: 10px;
+
+            padding:
+                5px 0;
+
+            border-top:
+                1px solid #eef0f2;
+
+            font-size: 11px;
         }
 
-        .leaflet-control-zoom a {
+
+        .weather-variable-name {
+
+            color: #6b7280;
+        }
+
+
+        .weather-variable-value {
+
+            font-weight: 600;
+
+            color: #111827;
+
+            text-align: right;
+        }
+
+
+        /* =========================================================
+           FOOTER
+        ========================================================= */
+
+        .sidebar-footer {
+
+            margin-top: auto;
+
+            padding:
+                15px 22px;
+
+            border-top:
+                1px solid #eef0f2;
+
+            font-size: 10px;
+
+            color: #9ca3af;
+        }
+
+
+        /* =========================================================
+           LEAFLET
+        ========================================================= */
+
+        .leaflet-control-zoom {
+
             border: none !important;
+
+            box-shadow:
+                0 3px 12px rgba(0, 0, 0, 0.08) !important;
+        }
+
+
+        .leaflet-control-zoom a {
+
+            border: none !important;
+
             color: #374151 !important;
         }
 
-        /* =========================
+
+        .weather-map-marker {
+
+            border-radius: 50%;
+
+            border:
+                2px solid white;
+
+            box-shadow:
+                0 1px 5px rgba(0, 0, 0, 0.35);
+        }
+
+
+        /* =========================================================
+           LOADING
+        ========================================================= */
+
+        .loading {
+
+            opacity: 0.5;
+
+            pointer-events: none;
+        }
+
+
+        /* =========================================================
            RESPONSIVE
-        ========================= */
+        ========================================================= */
 
         @media (max-width: 800px) {
 
             .app {
+
                 flex-direction: column;
             }
 
+
             .map-container {
+
                 height: 60%;
+
                 flex: none;
             }
 
+
             .sidebar {
+
                 width: 100%;
+
                 height: 40%;
             }
         }
+
     </style>
+
 </head>
+
 
 <body>
 
+
 <div class="app">
 
-    <!-- =========================
-         MAP
-    ========================= -->
+
+    <!-- =========================================================
+         CARTE
+    ========================================================= -->
 
     <main class="map-container">
 
         <div id="map"></div>
 
+        <div
+            class="map-status"
+            id="mapStatus"
+        >
+            Importez un fichier CSV puis cliquez sur la carte
+        </div>
+
     </main>
 
 
-    <!-- =========================
-         SIDEBAR
-    ========================= -->
+
+    <!-- =========================================================
+         PANNEAU
+    ========================================================= -->
 
     <aside class="sidebar">
 
+
+        <!-- HEADER -->
+
         <header class="sidebar-header">
 
-            <h1>DatExpl WeatherScore</h1>
+            <h1>
+                DatExpl WeatherScore
+            </h1>
 
             <p>
                 Exploration des données météorologiques
                 autour d'une position.
             </p>
-            <a href="welcome.html">Back to Account </a>
+
+            <a
+                href="welcome.html"
+                class="back-link"
+            >
+                ← Back to Account
+            </a>
 
         </header>
 
 
-        <!-- IMPORT -->
+
+        <!-- =====================================================
+             IMPORT
+        ====================================================== -->
 
         <section class="section">
 
@@ -449,41 +800,50 @@
                 Données
             </div>
 
-            <label class="file-drop" for="fileInput">
+
+            <label
+                class="file-drop"
+                for="fileInput"
+            >
 
                 <strong>
-                    Importer un fichier
+                    Importer un fichier CSV
                 </strong>
 
                 <span>
-                    CSV, JSON, GRIB, NetCDF...
+                    Sélectionnez votre fichier météo
                 </span>
 
             </label>
 
+
             <input
                 type="file"
                 id="fileInput"
-                accept=".csv,.json,.grib,.grb,.nc"
+                accept=".csv,text/csv"
             >
+
 
             <div
                 class="file-info"
                 id="fileInfo"
             >
-                Aucun fichier chargé
             </div>
 
         </section>
 
 
-        <!-- RAYON -->
+
+        <!-- =====================================================
+             RAYON
+        ====================================================== -->
 
         <section class="section">
 
             <div class="section-title">
                 Rayon de recherche
             </div>
+
 
             <div class="radius-value">
 
@@ -500,6 +860,7 @@
 
             </div>
 
+
             <input
                 type="range"
                 id="radiusSlider"
@@ -509,24 +870,33 @@
                 step="1"
             >
 
+
             <div class="range-labels">
 
-                <span>1 Nm</span>
+                <span>
+                    1 Nm
+                </span>
 
-                <span>500 Nm</span>
+                <span>
+                    500 Nm
+                </span>
 
             </div>
 
         </section>
 
 
-        <!-- POSITION -->
+
+        <!-- =====================================================
+             POSITION
+        ====================================================== -->
 
         <section class="section">
 
             <div class="section-title">
                 Position sélectionnée
             </div>
+
 
             <div class="position-box">
 
@@ -544,6 +914,7 @@
                     </span>
 
                 </div>
+
 
                 <div class="position-row">
 
@@ -565,7 +936,10 @@
         </section>
 
 
-        <!-- SUMMARY -->
+
+        <!-- =====================================================
+             RESULTATS
+        ====================================================== -->
 
         <section class="section">
 
@@ -573,12 +947,14 @@
                 Résultats
             </div>
 
+
             <div class="data-summary">
+
 
                 <div class="stat">
 
                     <div class="stat-label">
-                        Points dans le rayon
+                        Données
                     </div>
 
                     <div
@@ -589,6 +965,7 @@
                     </div>
 
                 </div>
+
 
                 <div class="stat">
 
@@ -605,29 +982,35 @@
 
                 </div>
 
-            </div>
 
-        </section>
+                <div class="stat">
+
+                    <div class="stat-label">
+                        Sources
+                    </div>
+
+                    <div
+                        class="stat-value"
+                        id="sourceCount"
+                    >
+                        0
+                    </div>
+
+                </div>
 
 
-        <!-- WEATHER DATA -->
+                <div class="stat">
 
-        <section class="section">
+                    <div class="stat-label">
+                        Variables
+                    </div>
 
-            <div class="section-title">
-                Données météo
-            </div>
-
-            <div
-                class="weather-data"
-                id="weatherData"
-            >
-
-                <div class="weather-placeholder">
-
-                    Sélectionnez une position sur la carte
-                    pour afficher les données disponibles
-                    dans le rayon.
+                    <div
+                        class="stat-value"
+                        id="variableCount"
+                    >
+                        0
+                    </div>
 
                 </div>
 
@@ -636,9 +1019,67 @@
         </section>
 
 
+
+        <!-- =====================================================
+             SOURCES
+        ====================================================== -->
+
+        <section
+            class="section"
+            id="sourceSection"
+            style="display:none;"
+        >
+
+            <div class="section-title">
+                Sources
+            </div>
+
+
+            <div
+                class="source-list"
+                id="sourceList"
+            >
+            </div>
+
+        </section>
+
+
+
+        <!-- =====================================================
+             DONNEES METEO
+        ====================================================== -->
+
+        <section class="section">
+
+            <div class="section-title">
+                Données météo
+            </div>
+
+
+            <div
+                class="weather-data"
+                id="weatherData"
+            >
+
+                <div class="weather-placeholder">
+
+                    Importez le CSV puis cliquez
+                    sur la carte pour rechercher
+                    les données disponibles.
+
+                </div>
+
+            </div>
+
+        </section>
+
+
+
+        <!-- FOOTER -->
+
         <footer class="sidebar-footer">
 
-            Weather Data Explorer · Development version
+            DatExpl WeatherScore · Development version
 
         </footer>
 
@@ -647,95 +1088,198 @@
 </div>
 
 
-<!-- Leaflet -->
+
+<!-- =============================================================
+     LEAFLET
+============================================================= -->
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 
 
+
 <script>
 
-    /*
-     * ==========================================
-     * INITIALISATION DE LA CARTE
-     * ==========================================
-     */
 
-    const map = L.map('map', {
-        worldCopyJump: true
-    }).setView([46.5, 2.5], 5);
+/* ================================================================
+   CONFIGURATION
+================================================================ */
 
+const CONFIG = {
 
     /*
-     * Fond de carte
+     * Rayon de la Terre en milles nautiques.
+     *
+     * 1 Nm = 1 852 mètres
      */
 
-    L.tileLayer(
-        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
-        {
-            maxZoom: 19,
-            attribution: '&copy; OpenStreetMap contributors'
-        }
-    ).addTo(map);
-
+    earthRadiusNm: 3440.065,
 
     /*
-     * ==========================================
-     * VARIABLES
-     * ==========================================
+     * Nombre maximum de marqueurs affichés
+     * simultanément sur la carte.
+     *
+     * Les données restent toutes disponibles
+     * dans le panneau.
      */
 
-    let selectedMarker = null;
-    let searchCircle = null;
+    maxMapMarkers: 1000
 
-    let selectedLatitude = null;
-    let selectedLongitude = null;
+};
 
 
-    /*
-     * ==========================================
-     * RAYON
-     * ==========================================
-     */
 
-    const radiusSlider =
-        document.getElementById('radiusSlider');
+/* ================================================================
+   CARTE
+================================================================ */
 
-    const radiusValue =
-        document.getElementById('radiusValue');
+const map = L.map("map", {
+
+    worldCopyJump: true
+
+}).setView(
+    [46.5, 2.5],
+    5
+);
 
 
-    radiusSlider.addEventListener('input', () => {
 
-        const radius =
-            Number(radiusSlider.value);
+/*
+ * Fond OpenStreetMap
+ */
 
-        radiusValue.textContent = radius;
+L.tileLayer(
+
+    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
+
+    {
+
+        maxZoom: 19,
+
+        attribution:
+            "&copy; OpenStreetMap contributors"
+
+    }
+
+).addTo(map);
+
+
+
+/* ================================================================
+   VARIABLES
+================================================================ */
+
+let weatherData = [];
+
+let selectedLatitude = null;
+
+let selectedLongitude = null;
+
+let selectedMarker = null;
+
+let searchCircle = null;
+
+let resultMarkers = [];
+
+let activeSource = "ALL";
+
+
+
+/* ================================================================
+   ELEMENTS HTML
+================================================================ */
+
+const fileInput =
+    document.getElementById("fileInput");
+
+const fileInfo =
+    document.getElementById("fileInfo");
+
+const radiusSlider =
+    document.getElementById("radiusSlider");
+
+const radiusValue =
+    document.getElementById("radiusValue");
+
+const latitudeElement =
+    document.getElementById("latitude");
+
+const longitudeElement =
+    document.getElementById("longitude");
+
+const pointCount =
+    document.getElementById("pointCount");
+
+const maxDistance =
+    document.getElementById("maxDistance");
+
+const sourceCount =
+    document.getElementById("sourceCount");
+
+const variableCount =
+    document.getElementById("variableCount");
+
+const weatherDataElement =
+    document.getElementById("weatherData");
+
+const sourceSection =
+    document.getElementById("sourceSection");
+
+const sourceList =
+    document.getElementById("sourceList");
+
+const mapStatus =
+    document.getElementById("mapStatus");
+
+
+
+/* ================================================================
+   RAYON
+================================================================ */
+
+radiusSlider.addEventListener(
+    "input",
+    function () {
+
+        const radiusNm =
+            Number(this.value);
+
+        radiusValue.textContent =
+            radiusNm;
 
         updateCircle();
 
         /*
-         * Plus tard :
-         *
-         * filterWeatherData(
-         *     selectedLatitude,
-         *     selectedLongitude,
-         *     radius
-         * );
+         * Si une position est déjà sélectionnée,
+         * on recalcule immédiatement les données.
          */
 
-    });
+        if (
+            selectedLatitude !== null &&
+            selectedLongitude !== null
+        ) {
+
+            updateResults();
+
+        }
+
+    }
+);
 
 
-    /*
-     * ==========================================
-     * CLIC SUR LA CARTE
-     * ==========================================
-     */
 
-    map.on('click', function(event) {
+/* ================================================================
+   CLIC SUR LA CARTE
+================================================================ */
 
-        selectedLatitude = event.latlng.lat;
-        selectedLongitude = event.latlng.lng;
+map.on(
+    "click",
+    function (event) {
+
+        selectedLatitude =
+            event.latlng.lat;
+
+        selectedLongitude =
+            event.latlng.lng;
 
 
         /*
@@ -743,215 +1287,1636 @@
          */
 
         if (selectedMarker) {
-            map.removeLayer(selectedMarker);
+
+            map.removeLayer(
+                selectedMarker
+            );
+
         }
 
 
         /*
-         * Créer le nouveau marqueur
+         * Nouveau marqueur
          */
 
-        selectedMarker = L.marker([
-            selectedLatitude,
-            selectedLongitude
-        ]).addTo(map);
+        selectedMarker =
+            L.marker([
+
+                selectedLatitude,
+                selectedLongitude
+
+            ]).addTo(map);
 
 
         /*
-         * Afficher les coordonnées
+         * Coordonnées
          */
 
-        document.getElementById('latitude')
-            .textContent =
+        latitudeElement.textContent =
             selectedLatitude.toFixed(5);
 
-        document.getElementById('longitude')
-            .textContent =
+        longitudeElement.textContent =
             selectedLongitude.toFixed(5);
 
 
         /*
-         * Mettre à jour le cercle
+         * Cercle
          */
 
         updateCircle();
 
 
         /*
-         * Statut
+         * Données
          */
 
-        document.getElementById('mapStatus')
-            .textContent =
-            'Position sélectionnée';
+        updateResults();
 
 
-        /*
-         * Plus tard :
-         *
-         * searchWeatherData();
-         */
+        mapStatus.textContent =
+            "Position sélectionnée";
 
-    });
+    }
+);
 
 
-    /*
-     * ==========================================
-     * CERCLE DE RECHERCHE
-     * ==========================================
-     */
 
-    function updateCircle() {
+/* ================================================================
+   CERCLE
+================================================================ */
 
-        if (
-            selectedLatitude === null ||
-            selectedLongitude === null
-        ) {
-            return;
-        }
+function updateCircle() {
 
+    if (
+        selectedLatitude === null ||
+        selectedLongitude === null
+    ) {
 
-        const radiusKm =
-            Number(radiusSlider.value);
-
-
-        const radiusMeters =
-            radiusKm *1852;
-
-
-        /*
-         * Supprimer l'ancien cercle
-         */
-
-        if (searchCircle) {
-            map.removeLayer(searchCircle);
-        }
-
-
-        /*
-         * Nouveau cercle
-         */
-
-        searchCircle = L.circle(
-            [
-                selectedLatitude,
-                selectedLongitude
-            ],
-            {
-                radius: radiusMeters,
-
-                color: '#2563eb',
-
-                weight: 1.5,
-
-                fillColor: '#2563eb',
-
-                fillOpacity: 0.08
-            }
-        ).addTo(map);
+        return;
 
     }
 
 
     /*
-     * ==========================================
-     * IMPORT DU FICHIER
-     * ==========================================
+     * Le slider est en milles nautiques.
      */
 
-    const fileInput =
-        document.getElementById('fileInput');
-
-    const fileInfo =
-        document.getElementById('fileInfo');
-
-
-    fileInput.addEventListener('change', function() {
-
-        const file = this.files[0];
-
-        if (!file) {
-            return;
-        }
-
-
-        fileInfo.style.display = 'block';
-
-        fileInfo.textContent =
-            file.name +
-            ' · ' +
-            formatFileSize(file.size);
-
-
-        /*
-         * Pour l'instant on ne traite
-         * pas encore le fichier.
-         *
-         * Quand tu me l'auras envoyé,
-         * cette partie sera remplacée
-         * par le parser adapté au format.
-         */
-
-    });
+    const radiusNm =
+        Number(radiusSlider.value);
 
 
     /*
-     * ==========================================
-     * TAILLE DU FICHIER
-     * ==========================================
+     * Leaflet attend des mètres.
+     *
+     * 1 Nm = 1 852 mètres.
      */
 
-    function formatFileSize(bytes) {
+    const radiusMeters =
+        radiusNm * 1852;
 
-        if (bytes < 1024) {
-            return bytes + ' B';
-        }
 
-        if (bytes < 1024 * 1024) {
-            return (
-                (bytes / 1024).toFixed(1)
-                + ' KB'
-            );
-        }
+    /*
+     * Supprimer l'ancien cercle.
+     */
 
-        return (
-            (bytes / (1024 * 1024)).toFixed(1)
-            + ' MB'
+    if (searchCircle) {
+
+        map.removeLayer(
+            searchCircle
         );
 
     }
 
 
     /*
-     * ==========================================
-     * FUTUR TRAITEMENT MÉTÉO
-     * ==========================================
-     *
-     * Le principe sera :
-     *
-     * 1. Import du fichier
-     *
-     * 2. Détection de sa structure
-     *
-     * 3. Chargement des données
-     *
-     * 4. Clic sur la carte
-     *
-     * 5. Calcul de la distance de chaque
-     *    donnée par rapport au point
-     *
-     * 6. Conservation des données :
-     *
-     *       distance <= rayon
-     *
-     * 7. Affichage sur la carte
-     *
-     * 8. Affichage dans le panneau
-     *
-     * ==========================================
+     * Nouveau cercle.
      */
+
+    searchCircle =
+        L.circle(
+
+            [
+                selectedLatitude,
+                selectedLongitude
+            ],
+
+            {
+
+                radius: radiusMeters,
+
+                color: "#2563eb",
+
+                weight: 1.5,
+
+                fillColor: "#2563eb",
+
+                fillOpacity: 0.08
+
+            }
+
+        ).addTo(map);
+
+}
+
+
+
+/* ================================================================
+   DISTANCE HAVERSINE
+================================================================ */
+
+/*
+ * Retourne la distance entre deux coordonnées
+ * en milles nautiques.
+ */
+
+function distanceNm(
+    lat1,
+    lon1,
+    lat2,
+    lon2
+) {
+
+    const R =
+        CONFIG.earthRadiusNm;
+
+
+    const dLat =
+        (
+            lat2 - lat1
+        ) *
+        Math.PI /
+        180;
+
+
+    const dLon =
+        (
+            lon2 - lon1
+        ) *
+        Math.PI /
+        180;
+
+
+    const lat1Rad =
+        lat1 *
+        Math.PI /
+        180;
+
+
+    const lat2Rad =
+        lat2 *
+        Math.PI /
+        180;
+
+
+    const a =
+
+        Math.sin(dLat / 2) ** 2
+
+        +
+
+        Math.cos(lat1Rad) *
+        Math.cos(lat2Rad) *
+        Math.sin(dLon / 2) ** 2;
+
+
+    const c =
+
+        2 *
+        Math.atan2(
+
+            Math.sqrt(a),
+
+            Math.sqrt(
+                1 - a
+            )
+
+        );
+
+
+    return R * c;
+
+}
+
+
+
+/* ================================================================
+   IMPORT CSV
+================================================================ */
+
+fileInput.addEventListener(
+    "change",
+    function () {
+
+        const file =
+            this.files[0];
+
+
+        if (!file) {
+
+            return;
+
+        }
+
+
+        /*
+         * Vérification extension
+         */
+
+        if (
+            !file.name
+                .toLowerCase()
+                .endsWith(".csv")
+        ) {
+
+            alert(
+                "Veuillez sélectionner un fichier CSV."
+            );
+
+            return;
+
+        }
+
+
+        /*
+         * Interface
+         */
+
+        fileInfo.style.display =
+            "block";
+
+
+        fileInfo.textContent =
+            "Lecture de " +
+            file.name +
+            "…";
+
+
+        document.body.classList.add(
+            "loading"
+        );
+
+
+        /*
+         * PapaParse
+         */
+
+        Papa.parse(
+
+            file,
+
+            {
+
+                header: true,
+
+                skipEmptyLines: true,
+
+                dynamicTyping: false,
+
+
+                complete:
+                    function (results) {
+
+                        processCSV(
+                            results,
+                            file
+                        );
+
+                    },
+
+
+                error:
+                    function (error) {
+
+                        console.error(
+                            error
+                        );
+
+                        fileInfo.textContent =
+                            "Erreur lors de la lecture du fichier.";
+
+                        document.body.classList.remove(
+                            "loading"
+                        );
+
+                    }
+
+            }
+
+        );
+
+    }
+);
+
+
+
+/* ================================================================
+   TRAITEMENT CSV
+================================================================ */
+
+function processCSV(
+    results,
+    file
+) {
+
+    /*
+     * Vérification des colonnes.
+     */
+
+    const requiredColumns = [
+
+        "source",
+        "provider",
+        "station_id",
+        "lat",
+        "lon",
+        "time_utc",
+        "variable",
+        "value",
+        "unit"
+
+    ];
+
+
+    const fields =
+        results.meta.fields || [];
+
+
+    const missing =
+        requiredColumns.filter(
+            column =>
+                !fields.includes(column)
+        );
+
+
+    if (missing.length > 0) {
+
+        fileInfo.textContent =
+            "CSV incompatible. Colonnes manquantes : " +
+            missing.join(", ");
+
+        document.body.classList.remove(
+            "loading"
+        );
+
+        return;
+
+    }
+
+
+    /*
+     * Conversion et nettoyage.
+     */
+
+    weatherData =
+        results.data
+
+            .map(
+                row => ({
+
+                    source:
+                        String(
+                            row.source || ""
+                        ).trim(),
+
+                    provider:
+                        String(
+                            row.provider || ""
+                        ).trim(),
+
+                    station_id:
+                        String(
+                            row.station_id || ""
+                        ).trim(),
+
+                    lat:
+                        Number(row.lat),
+
+                    lon:
+                        Number(row.lon),
+
+                    time_utc:
+                        String(
+                            row.time_utc || ""
+                        ).trim(),
+
+                    variable:
+                        String(
+                            row.variable || ""
+                        ).trim(),
+
+                    value:
+                        row.value === ""
+                            ? null
+                            : Number(row.value),
+
+                    unit:
+                        String(
+                            row.unit || ""
+                        ).trim()
+
+                })
+
+            )
+
+            /*
+             * On garde uniquement
+             * les coordonnées valides.
+             */
+
+            .filter(
+                row =>
+
+                    Number.isFinite(
+                        row.lat
+                    )
+
+                    &&
+
+                    Number.isFinite(
+                        row.lon
+                    )
+
+            );
+
+
+    /*
+     * Statistiques du fichier.
+     */
+
+    updateFileInfo(
+        file,
+        weatherData
+    );
+
+
+    /*
+     * Créer les filtres de sources.
+     */
+
+    createSourceFilters();
+
+
+    document.body.classList.remove(
+        "loading"
+    );
+
+
+    mapStatus.textContent =
+        weatherData.length.toLocaleString(
+            "fr-FR"
+        ) +
+        " données chargées — cliquez sur la carte";
+
+
+    /*
+     * Si une position était déjà sélectionnée,
+     * on actualise les résultats.
+     */
+
+    if (
+        selectedLatitude !== null &&
+        selectedLongitude !== null
+    ) {
+
+        updateResults();
+
+    }
+
+}
+
+
+
+/* ================================================================
+   INFORMATIONS FICHIER
+================================================================ */
+
+function updateFileInfo(
+    file,
+    data
+) {
+
+    const sources =
+        new Set(
+            data.map(
+                row => row.source
+            )
+        );
+
+
+    const variables =
+        new Set(
+            data.map(
+                row => row.variable
+            )
+        );
+
+
+    fileInfo.innerHTML =
+
+        "<strong>" +
+        escapeHTML(file.name) +
+        "</strong><br>" +
+
+        data.length.toLocaleString(
+            "fr-FR"
+        ) +
+
+        " lignes valides<br>" +
+
+        sources.size +
+
+        " sources · " +
+
+        variables.size +
+
+        " variables";
+
+}
+
+
+
+/* ================================================================
+   SOURCES
+================================================================ */
+
+function createSourceFilters() {
+
+    const sources =
+        [
+            ...new Set(
+                weatherData
+                    .map(
+                        row => row.source
+                    )
+                    .filter(Boolean)
+            )
+        ]
+        .sort();
+
+
+    sourceList.innerHTML = "";
+
+
+    /*
+     * Bouton ALL
+     */
+
+    const allButton =
+        document.createElement(
+            "button"
+        );
+
+
+    allButton.className =
+        "source-button active";
+
+
+    allButton.textContent =
+        "Toutes";
+
+
+    allButton.onclick =
+        function () {
+
+            activeSource =
+                "ALL";
+
+            updateSourceButtons();
+
+            updateResults();
+
+        };
+
+
+    sourceList.appendChild(
+        allButton
+    );
+
+
+    /*
+     * Sources individuelles
+     */
+
+    sources.forEach(
+        source => {
+
+            const button =
+                document.createElement(
+                    "button"
+                );
+
+
+            button.className =
+                "source-button";
+
+
+            button.textContent =
+                source;
+
+
+            button.onclick =
+                function () {
+
+                    activeSource =
+                        source;
+
+                    updateSourceButtons();
+
+                    updateResults();
+
+                };
+
+
+            sourceList.appendChild(
+                button
+            );
+
+        }
+    );
+
+
+    sourceSection.style.display =
+        "block";
+
+}
+
+
+
+/* ================================================================
+   ÉTAT DES BOUTONS SOURCES
+================================================================ */
+
+function updateSourceButtons() {
+
+    const buttons =
+        sourceList.querySelectorAll(
+            ".source-button"
+        );
+
+
+    buttons.forEach(
+        button => {
+
+            if (
+                activeSource === "ALL"
+                    &&
+                button.textContent === "Toutes"
+            ) {
+
+                button.classList.add(
+                    "active"
+                );
+
+                return;
+
+            }
+
+
+            if (
+                activeSource ===
+                button.textContent
+            ) {
+
+                button.classList.add(
+                    "active"
+                );
+
+            } else {
+
+                button.classList.remove(
+                    "active"
+                );
+
+            }
+
+        }
+    );
+
+}
+
+
+
+/* ================================================================
+   RECHERCHE DES DONNÉES
+================================================================ */
+
+function getDataInRadius() {
+
+    if (
+        selectedLatitude === null ||
+        selectedLongitude === null
+    ) {
+
+        return [];
+
+    }
+
+
+    const radius =
+        Number(
+            radiusSlider.value
+        );
+
+
+    const filtered =
+        weatherData
+
+            .filter(
+                row => {
+
+                    /*
+                     * Filtre source
+                     */
+
+                    if (
+                        activeSource !== "ALL"
+                        &&
+                        row.source !==
+                        activeSource
+                    ) {
+
+                        return false;
+
+                    }
+
+
+                    /*
+                     * Distance géographique
+                     */
+
+                    const distance =
+                        distanceNm(
+
+                            selectedLatitude,
+                            selectedLongitude,
+
+                            row.lat,
+                            row.lon
+
+                        );
+
+
+                    row._distanceNm =
+                        distance;
+
+
+                    return (
+                        distance <= radius
+                    );
+
+                }
+            );
+
+
+    /*
+     * Trier par distance.
+     */
+
+    filtered.sort(
+        (a, b) =>
+            a._distanceNm -
+            b._distanceNm
+    );
+
+
+    return filtered;
+
+}
+
+
+
+/* ================================================================
+   ACTUALISATION DES RESULTATS
+================================================================ */
+
+function updateResults() {
+
+    if (
+        selectedLatitude === null ||
+        selectedLongitude === null
+    ) {
+
+        return;
+
+    }
+
+
+    const results =
+        getDataInRadius();
+
+
+    /*
+     * Nombre de données.
+     */
+
+    pointCount.textContent =
+        results.length.toLocaleString(
+            "fr-FR"
+        );
+
+
+    /*
+     * Distance maximale.
+     */
+
+    if (results.length > 0) {
+
+        const max =
+            Math.max(
+                ...results.map(
+                    row =>
+                        row._distanceNm
+                )
+            );
+
+
+        maxDistance.textContent =
+            max.toFixed(1) +
+            " Nm";
+
+    } else {
+
+        maxDistance.textContent =
+            "—";
+
+    }
+
+
+    /*
+     * Sources présentes.
+     */
+
+    const sources =
+        new Set(
+            results.map(
+                row => row.source
+            )
+        );
+
+
+    sourceCount.textContent =
+        sources.size;
+
+
+    /*
+     * Variables présentes.
+     */
+
+    const variables =
+        new Set(
+            results.map(
+                row => row.variable
+            )
+        );
+
+
+    variableCount.textContent =
+        variables.size;
+
+
+    /*
+     * Marqueurs.
+     */
+
+    updateMapMarkers(
+        results
+    );
+
+
+    /*
+     * Liste des données.
+     */
+
+    renderWeatherData(
+        results
+    );
+
+}
+
+
+
+/* ================================================================
+   MARQUEURS CARTE
+================================================================ */
+
+function updateMapMarkers(
+    results
+) {
+
+    /*
+     * Supprimer les anciens marqueurs.
+     */
+
+    resultMarkers.forEach(
+        marker => {
+
+            map.removeLayer(
+                marker
+            );
+
+        }
+    );
+
+
+    resultMarkers = [];
+
+
+    /*
+     * Pour éviter une surcharge de la carte,
+     * on regroupe les données ayant exactement
+     * les mêmes coordonnées.
+     */
+
+    const locations =
+        new Map();
+
+
+    results.forEach(
+        row => {
+
+            const key =
+                row.lat.toFixed(5) +
+                "_" +
+                row.lon.toFixed(5);
+
+
+            if (
+                !locations.has(key)
+            ) {
+
+                locations.set(
+                    key,
+                    []
+                );
+
+            }
+
+
+            locations
+                .get(key)
+                .push(row);
+
+        }
+    );
+
+
+    /*
+     * Limite uniquement pour la carte.
+     *
+     * Les données ne sont PAS supprimées
+     * du panneau.
+     */
+
+    const locationsToDisplay =
+        Array.from(
+            locations.values()
+        ).slice(
+            0,
+            CONFIG.maxMapMarkers
+        );
+
+
+    locationsToDisplay.forEach(
+        rows => {
+
+            const first =
+                rows[0];
+
+
+            const marker =
+                L.circleMarker(
+
+                    [
+                        first.lat,
+                        first.lon
+                    ],
+
+                    {
+
+                        radius: 5,
+
+                        color: "#ffffff",
+
+                        weight: 1.5,
+
+                        fillColor:
+                            getSourceColor(
+                                first.source
+                            ),
+
+                        fillOpacity: 0.85
+
+                    }
+
+                );
+
+
+            /*
+             * Popup regroupant les données
+             * de cette position.
+             */
+
+            marker.bindPopup(
+                createPopup(
+                    rows
+                )
+            );
+
+
+            marker.addTo(map);
+
+
+            resultMarkers.push(
+                marker
+            );
+
+        }
+    );
+
+}
+
+
+
+/* ================================================================
+   COULEUR SOURCE
+================================================================ */
+
+function getSourceColor(
+    source
+) {
+
+    switch (source) {
+
+        case "RADAR":
+            return "#2563eb";
+
+        case "BUOY":
+            return "#059669";
+
+        case "COASTAL_STATION":
+            return "#7c3aed";
+
+        case "SHIP":
+            return "#ea580c";
+
+        default:
+            return "#6b7280";
+
+    }
+
+}
+
+
+
+/* ================================================================
+   POPUP CARTE
+================================================================ */
+
+function createPopup(
+    rows
+) {
+
+    const first =
+        rows[0];
+
+
+    /*
+     * On regroupe les variables
+     * de la position.
+     */
+
+    let html =
+
+        "<div style='min-width:220px'>" +
+
+        "<strong>" +
+        escapeHTML(
+            first.source
+        ) +
+        "</strong><br>" +
+
+        "<span style='font-size:11px;color:#777'>" +
+
+        escapeHTML(
+            first.provider
+        ) +
+
+        "</span><br><br>";
+
+
+    html +=
+
+        "<strong>Position</strong><br>" +
+
+        first.lat.toFixed(4) +
+        "° / " +
+        first.lon.toFixed(4) +
+
+        "<br>" +
+
+        "<span style='font-size:11px;color:#2563eb'>" +
+
+        first._distanceNm.toFixed(1) +
+
+        " Nm</span><br><br>";
+
+
+    /*
+     * Maximum 20 lignes dans le popup.
+     */
+
+    rows
+        .slice(0, 20)
+        .forEach(
+            row => {
+
+                html +=
+
+                    "<div style='display:flex;justify-content:space-between;gap:15px;border-top:1px solid #eee;padding:4px 0'>" +
+
+                    "<span>" +
+                    escapeHTML(
+                        row.variable
+                    ) +
+                    "</span>" +
+
+                    "<strong>" +
+
+                    formatValue(
+                        row.value
+                    ) +
+
+                    " " +
+
+                    escapeHTML(
+                        row.unit
+                    ) +
+
+                    "</strong>" +
+
+                    "</div>";
+
+            }
+        );
+
+
+    if (
+        rows.length > 20
+    ) {
+
+        html +=
+
+            "<br><span style='font-size:10px;color:#888'>" +
+
+            "+" +
+            (
+                rows.length - 20
+            ) +
+
+            " autres données"
+
+            +
+
+            "</span>";
+
+    }
+
+
+    html += "</div>";
+
+
+    return html;
+
+}
+
+
+
+/* ================================================================
+   AFFICHAGE DES DONNÉES
+================================================================ */
+
+function renderWeatherData(
+    results
+) {
+
+    weatherDataElement.innerHTML = "";
+
+
+    if (
+        results.length === 0
+    ) {
+
+        weatherDataElement.innerHTML =
+
+            "<div class='weather-placeholder'>" +
+
+            "Aucune donnée météo dans un rayon de " +
+
+            radiusSlider.value +
+
+            " Nm." +
+
+            "</div>";
+
+        return;
+
+    }
+
+
+    /*
+     * Regroupement :
+     *
+     * source + position + timestamp
+     *
+     * Ainsi les différentes variables
+     * d'une même observation apparaissent
+     * ensemble.
+     */
+
+    const groups =
+        new Map();
+
+
+    results.forEach(
+        row => {
+
+            const key =
+
+                row.source +
+                "|" +
+                row.lat.toFixed(5) +
+                "|" +
+                row.lon.toFixed(5) +
+                "|" +
+                row.time_utc;
+
+
+            if (
+                !groups.has(key)
+            ) {
+
+                groups.set(
+                    key,
+                    []
+                );
+
+            }
+
+
+            groups
+                .get(key)
+                .push(row);
+
+        }
+    );
+
+
+    /*
+     * Afficher les groupes.
+     */
+
+    Array.from(
+        groups.values()
+    )
+    .forEach(
+        rows => {
+
+            const first =
+                rows[0];
+
+
+            const card =
+                document.createElement(
+                    "div"
+                );
+
+
+            card.className =
+                "weather-record";
+
+
+            /*
+             * Header
+             */
+
+            const header =
+                document.createElement(
+                    "div"
+                );
+
+
+            header.className =
+                "weather-record-header";
+
+
+            const source =
+                document.createElement(
+                    "span"
+                );
+
+
+            source.className =
+                "weather-source";
+
+
+            source.textContent =
+                first.source;
+
+
+            const distance =
+                document.createElement(
+                    "span"
+                );
+
+
+            distance.className =
+                "weather-distance";
+
+
+            distance.textContent =
+                first._distanceNm.toFixed(1) +
+                " Nm";
+
+
+            header.appendChild(
+                source
+            );
+
+            header.appendChild(
+                distance
+            );
+
+
+            card.appendChild(
+                header
+            );
+
+
+            /*
+             * Métadonnées
+             */
+
+            const meta =
+                document.createElement(
+                    "div"
+                );
+
+
+            meta.className =
+                "weather-meta";
+
+
+            meta.textContent =
+
+                formatDate(
+                    first.time_utc
+                ) +
+
+                " · " +
+
+                first.lat.toFixed(3) +
+                "° / " +
+                first.lon.toFixed(3) +
+
+                (
+                    first.station_id
+                        ? " · " +
+                          first.station_id
+                        : ""
+                );
+
+
+            card.appendChild(
+                meta
+            );
+
+
+            /*
+             * Variables
+             */
+
+            rows.forEach(
+                row => {
+
+                    const variable =
+                        document.createElement(
+                            "div"
+                        );
+
+
+                    variable.className =
+                        "weather-variable";
+
+
+                    const name =
+                        document.createElement(
+                            "span"
+                        );
+
+
+                    name.className =
+                        "weather-variable-name";
+
+
+                    name.textContent =
+                        row.variable;
+
+
+                    const value =
+                        document.createElement(
+                            "span"
+                        );
+
+
+                    value.className =
+                        "weather-variable-value";
+
+
+                    value.textContent =
+
+                        formatValue(
+                            row.value
+                        ) +
+
+                        (
+                            row.unit
+                                ? " " +
+                                  row.unit
+                                : ""
+                        );
+
+
+                    variable.appendChild(
+                        name
+                    );
+
+                    variable.appendChild(
+                        value
+                    );
+
+
+                    card.appendChild(
+                        variable
+                    );
+
+                }
+            );
+
+
+            weatherDataElement.appendChild(
+                card
+            );
+
+        }
+    );
+
+}
+
+
+
+/* ================================================================
+   FORMAT VALEUR
+================================================================ */
+
+function formatValue(
+    value
+) {
+
+    if (
+        value === null ||
+        value === undefined ||
+        Number.isNaN(value)
+    ) {
+
+        return "—";
+
+    }
+
+
+    if (
+        typeof value === "number"
+    ) {
+
+        return value
+            .toLocaleString(
+                "fr-FR",
+                {
+                    maximumFractionDigits: 2
+                }
+            );
+
+    }
+
+
+    return String(
+        value
+    );
+
+}
+
+
+
+/* ================================================================
+   FORMAT DATE
+================================================================ */
+
+function formatDate(
+    dateString
+) {
+
+    if (!dateString) {
+
+        return "Date inconnue";
+
+    }
+
+
+    const date =
+        new Date(
+            dateString
+        );
+
+
+    if (
+        Number.isNaN(
+            date.getTime()
+        )
+    ) {
+
+        return dateString;
+
+    }
+
+
+    return date.toLocaleString(
+        "fr-FR",
+        {
+
+            year: "numeric",
+
+            month: "2-digit",
+
+            day: "2-digit",
+
+            hour: "2-digit",
+
+            minute: "2-digit",
+
+            timeZone: "UTC"
+
+        }
+    ) + " UTC";
+
+}
+
+
+
+/* ================================================================
+   PROTECTION HTML
+================================================================ */
+
+function escapeHTML(
+    value
+) {
+
+    return String(
+        value ?? ""
+    )
+    .replace(
+        /&/g,
+        "&amp;"
+    )
+    .replace(
+        /</g,
+        "&lt;"
+    )
+    .replace(
+        />/g,
+        "&gt;"
+    )
+    .replace(
+        /"/g,
+        "&quot;"
+    )
+    .replace(
+        /'/g,
+        "&#039;"
+    );
+
+}
+
+
+
+/* ================================================================
+   ETAT INITIAL
+================================================================ */
+
+radiusValue.textContent =
+    radiusSlider.value;
+
 
 </script>
 
 </body>
+
 </html>
