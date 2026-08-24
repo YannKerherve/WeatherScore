@@ -1024,24 +1024,16 @@
              SOURCES
         ====================================================== -->
 
-        <section
-            class="section"
-            id="sourceSection"
-            style="display:none;"
-        >
+<section class="section" id="sourceSection" style="display:none;">
+    <div class="section-title">Sources</div>
+    <div class="source-list" id="sourceList"></div>
 
-            <div class="section-title">
-                Sources
-            </div>
-
-
-            <div
-                class="source-list"
-                id="sourceList"
-            >
-            </div>
-
-        </section>
+    <!-- Case à cocher pour exclure le radar -->
+    <label style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: #374151; cursor: pointer;">
+        <input type="checkbox" id="excludeRadar">
+        Masquer les observations RADAR
+    </label>
+</section>
 
 
 
@@ -1099,7 +1091,7 @@
 
 <script>
 
-
+const excludeRadarInput = document.getElementById("excludeRadar");
 /* ================================================================
    CONFIGURATION
 ================================================================ */
@@ -1344,7 +1336,10 @@ map.on(
 /* ================================================================
    CERCLE
 ================================================================ */
-
+excludeRadarInput.addEventListener("change", function() {
+    updateResults();
+});
+    
 function updateCircle() {
 
     if (
@@ -2001,88 +1996,48 @@ function updateSourceButtons() {
 ================================================================ */
 
 function getDataInRadius() {
-
-    if (
-        selectedLatitude === null ||
-        selectedLongitude === null
-    ) {
-
+    if (selectedLatitude === null || selectedLongitude === null) {
         return [];
-
     }
 
+    const radius = Number(radiusSlider.value);
+    const excludeRadar = excludeRadarInput.checked; // <--- Vérification de la case
 
-    const radius =
-        Number(
-            radiusSlider.value
+    const filtered = weatherData.filter(row => {
+
+        /*
+         * Exclusion spécifique du RADAR
+         */
+        if (excludeRadar && row.source === "RADAR") {
+            return false;
+        }
+
+        /*
+         * Filtre source standard
+         */
+        if (activeSource !== "ALL" && row.source !== activeSource) {
+            return false;
+        }
+
+        /*
+         * Distance géographique
+         */
+        const distance = distanceNm(
+            selectedLatitude,
+            selectedLongitude,
+            row.lat,
+            row.lon
         );
 
+        row._distanceNm = distance;
 
-    const filtered =
-        weatherData
+        return distance <= radius;
+    });
 
-            .filter(
-                row => {
-
-                    /*
-                     * Filtre source
-                     */
-
-                    if (
-                        activeSource !== "ALL"
-                        &&
-                        row.source !==
-                        activeSource
-                    ) {
-
-                        return false;
-
-                    }
-
-
-                    /*
-                     * Distance géographique
-                     */
-
-                    const distance =
-                        distanceNm(
-
-                            selectedLatitude,
-                            selectedLongitude,
-
-                            row.lat,
-                            row.lon
-
-                        );
-
-
-                    row._distanceNm =
-                        distance;
-
-
-                    return (
-                        distance <= radius
-                    );
-
-                }
-            );
-
-
-    /*
-     * Trier par distance.
-     */
-
-    filtered.sort(
-        (a, b) =>
-            a._distanceNm -
-            b._distanceNm
-    );
-
+    filtered.sort((a, b) => a._distanceNm - b._distanceNm);
 
     return filtered;
-
 }
-
 
 
 /* ================================================================
