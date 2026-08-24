@@ -635,7 +635,125 @@
             text-align: right;
         }
 
+/* =========================================================
+   SOURCE DES DONNÉES
+========================================================= */
 
+.data-source {
+
+    margin-bottom: 12px;
+
+    padding: 14px;
+
+    border-radius: 9px;
+
+    background: #f8fafc;
+
+    border: 1px solid #e2e8f0;
+}
+
+
+.data-source-status {
+
+    display: inline-block;
+
+    margin-bottom: 7px;
+
+    padding: 4px 7px;
+
+    border-radius: 5px;
+
+    background: #dcfce7;
+
+    color: #166534;
+
+    font-size: 9px;
+
+    font-weight: 800;
+
+    letter-spacing: 0.08em;
+}
+
+
+.data-source-name {
+
+    font-size: 11px;
+
+    color: #64748b;
+
+    margin-bottom: 4px;
+}
+
+
+.data-source-date {
+
+    font-size: 18px;
+
+    line-height: 1.2;
+
+    font-weight: 750;
+
+    letter-spacing: -0.02em;
+
+    color: #111827;
+}
+
+
+/* Chargement */
+
+.data-source.loading {
+
+    background: #f8fafc;
+
+    border-color: #e5e7eb;
+}
+
+
+.data-source.loading
+.data-source-status {
+
+    background: #f3f4f6;
+
+    color: #6b7280;
+}
+
+
+/* Erreur */
+
+.data-source.error {
+
+    background: #fff7ed;
+
+    border-color: #fed7aa;
+}
+
+
+.data-source.error
+.data-source-status {
+
+    background: #ffedd5;
+
+    color: #c2410c;
+}
+
+
+/* Import manuel */
+
+.data-source.manual {
+
+    background: #eff6ff;
+
+    border-color: #bfdbfe;
+}
+
+
+.data-source.manual
+.data-source-status {
+
+    background: #dbeafe;
+
+    color: #1d4ed8;
+}
         /* =========================================================
            FOOTER
         ========================================================= */
@@ -1041,37 +1159,79 @@
              DONNEES METEO
         ====================================================== -->
 
-        <section class="section">
+<section class="section">
 
-            <div class="section-title">
-                Données météo
-            </div>
+    <div class="section-title">
+        Données météo
+    </div>
+
+    <!-- Source actuelle -->
+
+    <div
+        class="data-source"
+        id="dataSource"
+    >
+
+        <div class="data-source-status">
+            CHARGEMENT...
+        </div>
+
+        <div
+            class="data-source-name"
+            id="dataSourceName"
+        >
+            Recherche de latest.csv
+        </div>
+
+        <div
+            class="data-source-date"
+            id="dataSourceDate"
+        >
+            —
+        </div>
+
+    </div>
 
 
-            <div
-                class="weather-data"
-                id="weatherData"
-            >
+    <!-- Import manuel -->
 
-                <div class="weather-placeholder">
+    <label
+        class="file-drop"
+        for="fileInput"
+    >
 
-                    Importez le CSV puis cliquez
-                    sur la carte pour rechercher
-                    les données disponibles.
+        <strong>
+            ↗ Remplacer les données
+        </strong>
 
-                </div>
+        <span>
+            Importer manuellement un autre fichier CSV
+        </span>
 
-            </div>
+    </label>
 
-        </section>
 
+    <input
+        type="file"
+        id="fileInput"
+        accept=".csv,text/csv"
+    >
+
+
+    <div
+        class="file-info"
+        id="fileInfo"
+    >
+    </div>
+
+</section>
 
 
         <!-- FOOTER -->
 
         <footer class="sidebar-footer">
 
-            DatExpl WeatherScore · Development version
+            DatExpl WeatherScore · Development version · YK
 
         </footer>
 
@@ -1513,29 +1673,6 @@ fileInput.addEventListener(
         }
 
 
-        /*
-         * Vérification extension
-         */
-
-        if (
-            !file.name
-                .toLowerCase()
-                .endsWith(".csv")
-        ) {
-
-            alert(
-                "Veuillez sélectionner un fichier CSV."
-            );
-
-            return;
-
-        }
-
-
-        /*
-         * Interface
-         */
-
         fileInfo.style.display =
             "block";
 
@@ -1550,10 +1687,6 @@ fileInput.addEventListener(
             "loading"
         );
 
-
-        /*
-         * PapaParse
-         */
 
         Papa.parse(
 
@@ -1573,7 +1706,12 @@ fileInput.addEventListener(
 
                         processCSV(
                             results,
-                            file
+                            file,
+                            false
+                        );
+
+                        document.body.classList.remove(
+                            "loading"
                         );
 
                     },
@@ -1603,14 +1741,14 @@ fileInput.addEventListener(
 );
 
 
-
 /* ================================================================
    TRAITEMENT CSV
 ================================================================ */
 
 function processCSV(
     results,
-    file
+    file = null,
+    automatic = false
 ) {
 
     /*
@@ -1738,10 +1876,11 @@ function processCSV(
      * Statistiques du fichier.
      */
 
-    updateFileInfo(
-        file,
-        weatherData
-    );
+updateFileInfo(
+    file,
+    weatherData,
+    automatic
+);
 
 
     /*
@@ -1787,7 +1926,8 @@ function processCSV(
 
 function updateFileInfo(
     file,
-    data
+    data,
+    automatic = false
 ) {
 
     const sources =
@@ -1806,17 +1946,130 @@ function updateFileInfo(
         );
 
 
+    /*
+     * Trouver la date la plus récente
+     * réellement présente dans le fichier.
+     */
+
+    const latestDate =
+        getLatestDate(data);
+
+
+    /*
+     * Nom du fichier
+     */
+
+    const fileName =
+        automatic
+            ? "latest.csv"
+            : file.name;
+
+
+    /*
+     * Bloc principal
+     */
+
+    const dataSource =
+        document.getElementById(
+            "dataSource"
+        );
+
+
+    const status =
+        dataSource.querySelector(
+            ".data-source-status"
+        );
+
+
+    const name =
+        document.getElementById(
+            "dataSourceName"
+        );
+
+
+    const date =
+        document.getElementById(
+            "dataSourceDate"
+        );
+
+
+    /*
+     * Style selon la provenance.
+     */
+
+    dataSource.classList.remove(
+        "loading",
+        "error",
+        "manual"
+    );
+
+
+    if (automatic) {
+
+        status.textContent =
+            "DONNÉES AUTOMATIQUEMENT CHARGÉES";
+
+        name.textContent =
+            "Source : latest.csv";
+
+    }
+
+    else {
+
+        dataSource.classList.add(
+            "manual"
+        );
+
+        status.textContent =
+            "FICHIER IMPORTÉ MANUELLEMENT";
+
+        name.textContent =
+            "Source : " +
+            fileName;
+
+    }
+
+
+    /*
+     * Date très visible.
+     */
+
+    if (latestDate) {
+
+        date.textContent =
+            formatLatestDate(
+                latestDate
+            );
+
+    }
+
+    else {
+
+        date.textContent =
+            "Date inconnue";
+
+    }
+
+
+    /*
+     * Informations complémentaires.
+     */
+
+    fileInfo.style.display =
+        "block";
+
+
     fileInfo.innerHTML =
 
         "<strong>" +
-        escapeHTML(file.name) +
+        escapeHTML(fileName) +
         "</strong><br>" +
 
         data.length.toLocaleString(
             "fr-FR"
         ) +
 
-        " lignes valides<br>" +
+        " lignes · " +
 
         sources.size +
 
@@ -1828,8 +2081,202 @@ function updateFileInfo(
 
 }
 
+/* ================================================================
+   DERNIÈRE DATE DES DONNÉES
+================================================================ */
+
+function getLatestDate(data) {
+
+    let latest = null;
 
 
+    data.forEach(
+        row => {
+
+            if (!row.time_utc) {
+
+                return;
+
+            }
+
+
+            const date =
+                new Date(
+                    row.time_utc
+                );
+
+
+            if (
+                Number.isNaN(
+                    date.getTime()
+                )
+            ) {
+
+                return;
+
+            }
+
+
+            if (
+                latest === null ||
+                date > latest
+            ) {
+
+                latest = date;
+
+            }
+
+        }
+    );
+
+
+    return latest;
+
+}
+
+
+
+/* ================================================================
+   AFFICHAGE DE LA DATE
+================================================================ */
+
+function formatLatestDate(
+    date
+) {
+
+    return date.toLocaleString(
+
+        "fr-FR",
+
+        {
+
+            day: "2-digit",
+
+            month: "2-digit",
+
+            year: "numeric",
+
+            hour: "2-digit",
+
+            minute: "2-digit",
+
+            timeZone: "UTC"
+
+        }
+
+    ) + " UTC";
+
+}
+
+    /* ================================================================
+   ÉTAT : CHARGEMENT
+================================================================ */
+
+function setDataSourceLoading() {
+
+    const box =
+        document.getElementById(
+            "dataSource"
+        );
+
+
+    const status =
+        box.querySelector(
+            ".data-source-status"
+        );
+
+
+    const name =
+        document.getElementById(
+            "dataSourceName"
+        );
+
+
+    const date =
+        document.getElementById(
+            "dataSourceDate"
+        );
+
+
+    box.classList.remove(
+        "error",
+        "manual"
+    );
+
+
+    box.classList.add(
+        "loading"
+    );
+
+
+    status.textContent =
+        "CHARGEMENT AUTOMATIQUE";
+
+
+    name.textContent =
+        "Recherche de latest.csv";
+
+
+    date.textContent =
+        "—";
+
+}
+
+
+
+/* ================================================================
+   ÉTAT : ERREUR
+================================================================ */
+
+function setDataSourceError() {
+
+    const box =
+        document.getElementById(
+            "dataSource"
+        );
+
+
+    const status =
+        box.querySelector(
+            ".data-source-status"
+        );
+
+
+    const name =
+        document.getElementById(
+            "dataSourceName"
+        );
+
+
+    const date =
+        document.getElementById(
+            "dataSourceDate"
+        );
+
+
+    box.classList.remove(
+        "loading",
+        "manual"
+    );
+
+
+    box.classList.add(
+        "error"
+    );
+
+
+    status.textContent =
+        "latest.csv INTROUVABLE";
+
+
+    name.textContent =
+        "Import manuel disponible";
+
+
+    date.textContent =
+        "—";
+
+}
 /* ================================================================
    SOURCES
 ================================================================ */
@@ -2860,7 +3307,105 @@ function escapeHTML(
 
 }
 
+/* ================================================================
+   CHARGEMENT AUTOMATIQUE DE latest.csv
+================================================================ */
 
+async function loadLatestCSV() {
+
+    setDataSourceLoading();
+
+    try {
+
+        const response =
+            await fetch(
+                "latest.csv?cache=" +
+                Date.now()
+            );
+
+
+        if (!response.ok) {
+
+            throw new Error(
+                "HTTP " +
+                response.status
+            );
+
+        }
+
+
+        const csvText =
+            await response.text();
+
+
+        /*
+         * On utilise PapaParse directement
+         * sur le contenu téléchargé.
+         */
+
+        Papa.parse(
+
+            csvText,
+
+            {
+
+                header: true,
+
+                skipEmptyLines: true,
+
+                dynamicTyping: false,
+
+
+                complete:
+                    function (results) {
+
+                        processCSV(
+                            results,
+                            null,
+                            true
+                        );
+
+                    },
+
+
+                error:
+                    function (error) {
+
+                        throw error;
+
+                    }
+
+            }
+
+        );
+
+    }
+
+    catch (error) {
+
+        console.error(
+            "Impossible de charger latest.csv :",
+            error
+        );
+
+
+        setDataSourceError();
+
+        document.getElementById(
+            "fileInfo"
+        ).style.display = "block";
+
+
+        document.getElementById(
+            "fileInfo"
+        ).textContent =
+
+            "latest.csv n'a pas pu être chargé. " +
+            "Vous pouvez importer un fichier CSV manuellement.";
+
+    }
+
+}
 
 /* ================================================================
    ETAT INITIAL
@@ -2868,7 +3413,19 @@ function escapeHTML(
 
 radiusValue.textContent =
     radiusSlider.value;
+/* ================================================================
+   DÉMARRAGE
+================================================================ */
 
+radiusValue.textContent =
+    radiusSlider.value;
+
+
+/*
+ * Chargement automatique du dernier fichier.
+ */
+
+loadLatestCSV();
 
 </script>
 
