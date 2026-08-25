@@ -125,6 +125,13 @@ main { flex: 1; padding: 36px 28px 20px; max-width: 1400px; margin: 0 auto; widt
   gap: 10px;
 }
 .section-label::after { content:''; flex:1; height:1px; background:var(--border); }
+.section-sync {
+  font-family: var(--font-mono);
+  font-size: 9.5px;
+  color: var(--text-dim);
+  text-transform: none;
+  letter-spacing: 0;
+}
 
 /* ── GRID HELPERS ── */
 .grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 14px; margin-bottom: 28px; }
@@ -445,16 +452,16 @@ tbody tr:last-child td { border-bottom: none; }
 
 
   <!-- ══════════════════════════════════════════
-       SECTION 1 — MACHINE LOCALE
+       SECTION 1 — MACHINE LOCALE (Google Sheet: Serveur Local, 3h glissantes)
   ══════════════════════════════════════════ -->
-  <div class="section-label">Machine locale — serveur de calcul</div>
+  <div class="section-label">Machine locale — serveur de calcul <span class="section-sync" id="local-last-sync"></span></div>
 
   <div class="grid-4">
 
     <div class="card accent-warm">
       <div class="card-label">CPU %</div>
-      <div class="card-value" id="cpu-temp" style="color:var(--amber)">—</div>
-      <div class="card-sub" id="cpu-sub">Intel Core i7 47110 MQ</div>
+      <div class="card-value" id="cpu-val" style="color:var(--amber)">—</div>
+      <div class="card-sub" id="cpu-sub">en attente de données</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="cpu-bar" style="background:var(--amber); width:0%"></div></div>
         <div class="gauge-labels"><span>0%</span><span>100%</span></div>
@@ -467,10 +474,10 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="card accent-signal">
       <div class="card-label">RAM utilisée</div>
       <div class="card-value" id="ram-val" style="color:var(--signal)">—</div>
-      <div class="card-sub" id="ram-sub">/ 7.9 GO</div>
+      <div class="card-sub" id="ram-sub">en attente de données</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="ram-bar" style="background:var(--signal); width:0%"></div></div>
-        <div class="gauge-labels"><span>0</span><span>7.9 Go</span></div>
+        <div class="gauge-labels"><span>0%</span><span>100%</span></div>
       </div>
       <svg class="sparkline" id="spark-ram" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
         <polyline id="spark-ram-line" stroke="var(--signal)" stroke-width="1.2"/>
@@ -478,12 +485,12 @@ tbody tr:last-child td { border-bottom: none; }
     </div>
 
     <div class="card accent-green">
-      <div class="card-label">Disque GRIB</div>
+      <div class="card-label">Disque</div>
       <div class="card-value" id="disk-val" style="color:var(--green)">—</div>
-      <div class="card-sub" id="disk-sub">HDD 116 Go· C:/</div>
+      <div class="card-sub" id="disk-sub">en attente de données</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="disk-bar" style="background:var(--green); width:0%"></div></div>
-        <div class="gauge-labels"><span>0</span><span>116 Go</span></div>
+        <div class="gauge-labels"><span>0%</span><span>100%</span></div>
       </div>
       <svg class="sparkline" id="spark-disk" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
         <polyline id="spark-disk-line" stroke="var(--green)" stroke-width="1.2"/>
@@ -496,7 +503,7 @@ tbody tr:last-child td { border-bottom: none; }
       <div class="card-sub" id="net-sub">↓ dl · ↑ ul</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="net-bar" style="background: linear-gradient(90deg,var(--signal2),var(--signal)); width:0%"></div></div>
-        <div class="gauge-labels"><span>0</span><span>1 Gbit/s</span></div>
+        <div class="gauge-labels"><span>0</span><span id="net-bar-max">— Ko/s</span></div>
       </div>
       <svg class="sparkline" id="spark-net" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
         <polyline id="spark-net-line" stroke="var(--signal)" stroke-width="1.2"/>
@@ -507,7 +514,7 @@ tbody tr:last-child td { border-bottom: none; }
 
 
   <!-- ══════════════════════════════════════════
-       SECTION 2 — PIPELINE DE DONNÉES
+       SECTION 2 — PIPELINE DE DONNÉES (Google Sheet: Calcul)
   ══════════════════════════════════════════ -->
   <div class="section-label">Pipeline — téléchargement · calcul · envoi</div>
 
@@ -544,15 +551,15 @@ tbody tr:last-child td { border-bottom: none; }
 
 
   <!-- ══════════════════════════════════════════
-       SECTION 3 — SERVICES EXTERNES
+       SECTION 3 — SERVICES EXTERNES + GITHUB
   ══════════════════════════════════════════ -->
   <div class="section-label">Services externes</div>
 
-  <div class="grid-3" style="margin-bottom:28px">
+  <div class="grid-2" style="margin-bottom:28px">
 
     <div class="card accent-signal" style="padding:0">
       <div style="padding:16px 20px 0;">
-        <div class="card-label" style="margin-bottom:12px">État des services</div>
+        <div class="card-label" style="margin-bottom:12px">État des services (Google Sheet)</div>
       </div>
       <div class="service-list" style="padding:0 20px 8px;" id="service-list"></div>
     </div>
@@ -563,14 +570,6 @@ tbody tr:last-child td { border-bottom: none; }
         <div class="card-label" style="margin-bottom:12px">GitHub — derniers commits</div>
       </div>
       <div class="pipeline" id="git-log" style="padding:0 20px;"></div>
-    </div>
-
-    <!-- Résumé dernière exécution sources.py -->
-    <div class="card accent-green" style="padding:0">
-      <div style="padding:16px 20px 0">
-        <div class="card-label" style="margin-bottom:12px">Résumé sources.py</div>
-      </div>
-      <div id="sources-summary" style="padding:0 20px 12px; display:flex; flex-direction:column; gap:8px;"></div>
     </div>
 
   </div>
@@ -654,10 +653,15 @@ tbody tr:last-child td { border-bottom: none; }
 
 <script>
 // ═══════════════════════════════════════════════════
-// CONFIG SUPABASE — remplacer par vos credentials
+// CONFIG
 // ═══════════════════════════════════════════════════
-const SUPABASE_URL     = 'https://YOUR_PROJECT.supabase.co';
-const SUPABASE_ANON_KEY= 'YOUR_ANON_KEY';
+const SHEET_ID     = '1Wkekcsuiz6L5eOJY5lq2tCPHX42eMcXkrBL_l8KhGtY';
+const SHEET_LOCAL  = 'Serveur Local';
+const SHEET_CALCUL = 'Calcul';
+const GITHUB_REPO  = 'YannKerherve/WeatherScore';
+
+const SUPABASE_URL      = 'https://merugolympcngamjukzo.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1lcnVnb2x5bXBjbmdhbWp1a3pvIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODcyMDM2MTQsImV4cCI6MjEwMjc3OTYxNH0.N1qeRzRv6vcUFEk4CucMMQarnnIG0P_6OgAwy451saM';
 const sb = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 // ═══════════════════════════════════════════════════
@@ -671,262 +675,347 @@ function updateClock() {
 updateClock(); setInterval(updateClock, 1000);
 
 // ═══════════════════════════════════════════════════
-// DONNÉES SYSTÈME SIMULÉES
-// (remplacer par des appels à une API locale Python
-//  type Flask/FastAPI qui lit /proc/cpuinfo, psutil…)
+// HELPERS GÉNÉRIQUES
 // ═══════════════════════════════════════════════════
-const SYSTEM_MOCK = {
-  cpuTemp:    67,   // °C
-  cpuMax:     100,
-  ramUsed:    18.4, // Go
-  ramTotal:   32,
-  diskUsed:   312,  // Go
-  diskTotal:  2000,
-  dlMbps:     84.2,
-  ulMbps:     21.5,
-  maxMbps:    1000,
-};
+function escapeHtml(str) {
+  return (str || '').toString()
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
 
-const sparkData = { cpu:[], ram:[], disk:[], net:[] };
+function formatAge(dateLike) {
+  if (!dateLike) return '—';
+  const d = dateLike instanceof Date ? dateLike : new Date(dateLike.toString().replace(' ','T'));
+  if (isNaN(d.getTime())) return dateLike.toString();
+  const diffMs = Date.now() - d.getTime();
+  if (diffMs < 0) return '—';
+  const mins = Math.floor(diffMs / 60000);
+  if (mins < 1) return '<1m';
+  if (mins < 60) return mins + 'm';
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return h + 'h ' + String(m).padStart(2,'0') + 'm';
+}
 
-function populateSpark(id, pts, color) {
+function iconSVG(state) {
+  if (state === 'ok')  return '✓';
+  if (state === 'run') return '▶';
+  if (state === 'err') return '✕';
+  return '·';
+}
+
+function mapState(v) {
+  if (!v) return 'idle';
+  const s = v.toString().trim().toLowerCase();
+  if (!s || s === '-') return 'idle';
+  if (s.includes('ok') || s.includes('succ') || s.includes('terminé') || s === '✓') return 'ok';
+  if (s.includes('cours') || s.includes('run') || s.includes('pending')) return 'run';
+  if (s.includes('err') || s.includes('ko') || s.includes('fail') || s.includes('échec')) return 'err';
+  return 'idle';
+}
+
+// ═══════════════════════════════════════════════════
+// GOOGLE SHEETS — lecture via l'endpoint gviz (lecture seule,
+// pas de clé API nécessaire tant que le Sheet est partagé
+// "Toute personne disposant du lien — Lecteur")
+// ═══════════════════════════════════════════════════
+async function gvizFetch(sheetName) {
+  const url = `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:json&headers=0&sheet=${encodeURIComponent(sheetName)}`;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const text = await res.text();
+  const jsonText = text.substring(text.indexOf('{'), text.lastIndexOf('}') + 1);
+  const parsed = JSON.parse(jsonText);
+  return parsed.table;
+}
+
+function tableToRows(table) {
+  // -> tableau 2D de valeurs brutes (null si cellule vide)
+  return (table.rows || []).map(r => (r.c || []).map(c => (c ? c.v : null)));
+}
+
+// ═══════════════════════════════════════════════════
+// SECTION 1 — MACHINE LOCALE (3 dernières heures)
+// ═══════════════════════════════════════════════════
+function populateSpark(id, pts) {
   const n = pts.length;
-  if (n < 2) return;
-  const W=120, H=32, pad=2;
-  const xStep = (W-pad*2) / (n-1);
+  const el = document.getElementById(id);
+  if (n < 2) { el.setAttribute('points',''); return; }
+  const W = 120, H = 32, pad = 2;
+  const xStep = (W - pad * 2) / (n - 1);
   const min = Math.min(...pts);
   const max = Math.max(...pts) || 1;
   const points = pts.map((v,i) =>
-    `${(pad + i*xStep).toFixed(1)},${(H - pad - (v-min)/(max-min+.001)*(H-pad*2)).toFixed(1)}`
+    `${(pad + i * xStep).toFixed(1)},${(H - pad - (v - min) / (max - min + .001) * (H - pad * 2)).toFixed(1)}`
   ).join(' ');
-  document.getElementById(id).setAttribute('points', points);
+  el.setAttribute('points', points);
 }
 
-function renderSystemCards() {
-  const s = SYSTEM_MOCK;
-  // CPU
-  const cpuPct = s.cpuTemp / s.cpuMax * 100;
-  document.getElementById('cpu-temp').textContent = s.cpuTemp + '°C';
-  document.getElementById('cpu-bar').style.width = cpuPct + '%';
-  document.getElementById('cpu-bar').style.background =
-    s.cpuTemp > 80 ? 'var(--red)' : s.cpuTemp > 65 ? 'var(--amber)' : 'var(--green)';
+async function loadServerLocal() {
+  try {
+    const table = await gvizFetch(SHEET_LOCAL);
+    const rows = tableToRows(table).slice(1); // ligne 0 = en-têtes
+    const cutoff = Date.now() - 3 * 60 * 60 * 1000;
 
-  // RAM
-  const ramPct = s.ramUsed / s.ramTotal * 100;
-  document.getElementById('ram-val').textContent = s.ramUsed + ' Go';
-  document.getElementById('ram-sub').textContent = '/ ' + s.ramTotal + ' Go DDR5 · ' + ramPct.toFixed(0) + '%';
-  document.getElementById('ram-bar').style.width = ramPct + '%';
+    const parsed = rows.map(r => {
+      const dateStr = r[0];
+      if (!dateStr) return null;
+      const d = new Date(dateStr.toString().replace(' ', 'T'));
+      if (isNaN(d.getTime())) return null;
+      const cpu  = parseFloat(r[1]);
+      const ram  = parseFloat(r[3]);
+      const disk = parseFloat(r[4]);
+      const netStr = (r[5] || '').toString();
+      const mUp   = netStr.match(/Up:\s*([\d.]+)/i);
+      const mDown = netStr.match(/Down:\s*([\d.]+)/i);
+      return {
+        date: d,
+        cpu: isNaN(cpu) ? null : cpu,
+        ram: isNaN(ram) ? null : ram,
+        disk: isNaN(disk) ? null : disk,
+        up: mUp ? parseFloat(mUp[1]) : 0,
+        down: mDown ? parseFloat(mDown[1]) : 0,
+      };
+    }).filter(Boolean).filter(p => p.date.getTime() >= cutoff)
+      .sort((a,b) => a.date - b.date);
 
-  // Disk
-  const diskPct = s.diskUsed / s.diskTotal * 100;
-  document.getElementById('disk-val').textContent = (s.diskUsed >= 1000 ? (s.diskUsed/1000).toFixed(1)+' To' : s.diskUsed+' Go');
-  document.getElementById('disk-sub').textContent = 'SSD 2 To · ' + diskPct.toFixed(1) + '% utilisé';
-  document.getElementById('disk-bar').style.width = diskPct + '%';
+    const syncEl = document.getElementById('local-last-sync');
+    if (parsed.length === 0) {
+      syncEl.textContent = 'aucune donnée sur les 3 dernières heures';
+      ['cpu','ram','disk','net'].forEach(k => {
+        document.getElementById(k + '-val').textContent = '—';
+      });
+      return;
+    }
 
-  // Network
-  document.getElementById('net-val').textContent = s.dlMbps + ' Mb/s';
-  document.getElementById('net-sub').textContent = '↓ ' + s.dlMbps + ' Mb/s  ·  ↑ ' + s.ulMbps + ' Mb/s';
-  document.getElementById('net-bar').style.width = (s.dlMbps / s.maxMbps * 100) + '%';
+    const latest = parsed[parsed.length - 1];
+    syncEl.textContent = `${parsed.length} points · dernière lecture il y a ${formatAge(latest.date)}`;
+
+    // CPU
+    document.getElementById('cpu-val').textContent = latest.cpu != null ? latest.cpu.toFixed(1) + ' %' : '—';
+    document.getElementById('cpu-sub').textContent  = 'processeur — ' + parsed.length + ' relevés / 3h';
+    document.getElementById('cpu-bar').style.width  = (latest.cpu || 0) + '%';
+    document.getElementById('cpu-bar').style.background = (latest.cpu||0) > 80 ? 'var(--red)' : (latest.cpu||0) > 60 ? 'var(--amber)' : 'var(--green)';
+    populateSpark('spark-cpu-line', parsed.map(p => p.cpu ?? 0));
+
+    // RAM
+    document.getElementById('ram-val').textContent = latest.ram != null ? latest.ram.toFixed(1) + ' %' : '—';
+    document.getElementById('ram-sub').textContent  = 'mémoire vive — ' + parsed.length + ' relevés / 3h';
+    document.getElementById('ram-bar').style.width  = (latest.ram || 0) + '%';
+    populateSpark('spark-ram-line', parsed.map(p => p.ram ?? 0));
+
+    // Disque
+    document.getElementById('disk-val').textContent = latest.disk != null ? latest.disk.toFixed(1) + ' %' : '—';
+    document.getElementById('disk-sub').textContent  = 'espace GRIB utilisé';
+    document.getElementById('disk-bar').style.width  = (latest.disk || 0) + '%';
+    document.getElementById('disk-bar').style.background = (latest.disk||0) > 90 ? 'var(--red)' : (latest.disk||0) > 75 ? 'var(--amber)' : 'var(--green)';
+    populateSpark('spark-disk-line', parsed.map(p => p.disk ?? 0));
+
+    // Réseau
+    const maxNet = Math.max(1, ...parsed.map(p => Math.max(p.up, p.down)));
+    document.getElementById('net-val').textContent = latest.down.toFixed(2) + ' Ko/s';
+    document.getElementById('net-sub').textContent = `↓ ${latest.down.toFixed(2)} Ko/s · ↑ ${latest.up.toFixed(2)} Ko/s`;
+    document.getElementById('net-bar').style.width = (latest.down / maxNet * 100) + '%';
+    document.getElementById('net-bar-max').textContent = maxNet.toFixed(1) + ' Ko/s (max 3h)';
+    populateSpark('spark-net-line', parsed.map(p => p.down));
+
+  } catch (err) {
+    console.error('loadServerLocal', err);
+    document.getElementById('local-last-sync').textContent = 'erreur de lecture du Google Sheet';
+  }
 }
-
-function tickSparklines() {
-  const s = SYSTEM_MOCK;
-  const drift = v => +(v + (Math.random()-.5)*3).toFixed(1);
-  SYSTEM_MOCK.cpuTemp = Math.min(95, Math.max(40, drift(s.cpuTemp)));
-  SYSTEM_MOCK.ramUsed = Math.min(31, Math.max(4, drift(s.ramUsed)));
-  SYSTEM_MOCK.dlMbps  = Math.min(980, Math.max(5, drift(s.dlMbps)));
-
-  sparkData.cpu.push(SYSTEM_MOCK.cpuTemp);
-  sparkData.ram.push(SYSTEM_MOCK.ramUsed);
-  sparkData.net.push(SYSTEM_MOCK.dlMbps);
-  sparkData.disk.push(SYSTEM_MOCK.diskUsed + Math.random()*2);
-  if (sparkData.cpu.length > 40) { sparkData.cpu.shift(); sparkData.ram.shift(); sparkData.net.shift(); sparkData.disk.shift(); }
-
-  populateSpark('spark-cpu-line',  sparkData.cpu,  'var(--amber)');
-  populateSpark('spark-ram-line',  sparkData.ram,  'var(--signal)');
-  populateSpark('spark-net-line',  sparkData.net,  'var(--signal)');
-  populateSpark('spark-disk-line', sparkData.disk, 'var(--green)');
-
-  renderSystemCards();
-}
-// Premier tick + remplissage historique simulé
-for(let i=0;i<35;i++){
-  SYSTEM_MOCK.cpuTemp = Math.min(95,Math.max(40, SYSTEM_MOCK.cpuTemp+(Math.random()-.5)*4));
-  sparkData.cpu.push(SYSTEM_MOCK.cpuTemp);
-  sparkData.ram.push(SYSTEM_MOCK.ramUsed + (Math.random()-.5)*3);
-  sparkData.net.push(SYSTEM_MOCK.dlMbps + (Math.random()-.5)*15);
-  sparkData.disk.push(SYSTEM_MOCK.diskUsed + Math.random());
-}
-renderSystemCards();
-populateSpark('spark-cpu-line',  sparkData.cpu,  'var(--amber)');
-populateSpark('spark-ram-line',  sparkData.ram,  'var(--signal)');
-populateSpark('spark-net-line',  sparkData.net,  'var(--signal)');
-populateSpark('spark-disk-line', sparkData.disk, 'var(--green)');
-setInterval(tickSparklines, 3000);
 
 // ═══════════════════════════════════════════════════
-// PIPELINE GRIB
+// SECTION 2 — PIPELINE (onglet "Calcul")
+// Le classeur empile plusieurs tableaux dans le même onglet ;
+// on les retrouve en repérant leur ligne d'en-tête, sans figer
+// de numéros de ligne — le tableau pourra grandir librement.
 // ═══════════════════════════════════════════════════
-const GRIB_STEPS = [
-  { name:'GFS / NOAA',       desc:'NOMADS filter 0.25° — vent, pression, T2m', state:'ok',  size:'1.2 Mo', age:'6h 04m' },
-  { name:'ECMWF IFS',        desc:'S3 byte-range 0.25° — 10U/V, MSL, SWH',    state:'ok',  size:'640 kB', age:'8h 12m' },
-  { name:'ICON-EU',          desc:'DWD opendata 0.0625° — U/V/PMSL/T2m/CLCT', state:'ok',  size:'18.4 Mo', age:'3h 51m' },
-  { name:'ICON-Global',      desc:'DWD opendata 0.25° — monde entier',          state:'run', size:'—',      age:'en cours' },
-  { name:'ARPEGE / MF',      desc:'data.gouv.fr SP1/SP2 0.5°',                  state:'ok',  size:'830 kB', age:'5h 28m' },
-  { name:'AROME / MF',       desc:'API MF 0.025° — clé OK',                     state:'ok',  size:'2.1 Mo', age:'2h 09m' },
-  { name:'MFWAM',            desc:'API MF vagues 0.1°',                          state:'ok',  size:'410 kB', age:'5h 28m' },
-  { name:'WW3 / NOAA',       desc:'NOMADS multi_1.glo_30m vagues 0.5°',          state:'err', size:'—',      age:'HTTP 500' },
-  { name:'GEM / Canada',     desc:'MSC Datamart UGRD/VGRD/PRMSL/T2m',           state:'ok',  size:'3.4 Mo', age:'5h 03m' },
+const CALCUL_HEADERS = [
+  { key: 'grib',     test: v => v && v.toLowerCase().includes('téléchargement des gribs') },
+  { key: 'obs',      test: v => v && v.toLowerCase().includes('téléchargement des données météo') },
+  { key: 'calc',     test: v => v && v.toLowerCase().includes('calcul et envoi') },
+  { key: 'services', test: v => v && v.toLowerCase().includes('services externes') },
 ];
 
-const OBS_STEPS = [
-  { name:'MF Synop',         desc:'donneespubliques.meteofrance.fr CSV',   state:'ok',  size:'33 kB',  age:'0h 12m' },
-  { name:'ICOADS NRT',       desc:'icoads.noaa.gov J-1 IMMA gz',           state:'ok',  size:'115 kB', age:'14h 00m' },
-  { name:'CMEMS In-Situ',    desc:'nrt.cmems-du.eu observations NRT',       state:'ok',  size:'12 kB',  age:'0h 42m' },
-  { name:'E-SURFMAR',        desc:'62029 62103 62163 NDBC relay',            state:'ok',  size:'6 kB',   age:'0h 12m' },
-  { name:'Argo / Ifremer',   desc:'erddap.ifremer.fr profils T/S 30j',      state:'err', size:'—',      age:'HTTP 404' },
-  { name:'IGRA2 Radiosondes',desc:'NCEI Brest / Rennes / Nantes',           state:'idle',size:'—',      age:'—' },
-];
-
-const CALC_STEPS = [
-  { name:'Lecture GRIB (eccodes/C)',  desc:'extraction points grille → arrays float32', state:'ok',  size:'',      age:'2h 08m' },
-  { name:'Calcul scores (C)',         desc:'score_engine.c — RMSE/MAE modèle × obs',    state:'run', size:'',      age:'en cours' },
-  { name:'Sérialisation JSON',        desc:'résultats → points_scores_YYYYMMDD.json',    state:'idle',size:'',     age:'—' },
-  { name:'Push → GitHub',            desc:'git add . && commit && push origin main',     state:'idle',size:'',     age:'—' },
-  { name:'Upsert → Supabase',         desc:'table model_scores · batch insert 250 pts',  state:'idle',size:'',     age:'—' },
-];
-
-function iconSVG(state) {
-  if (state==='ok')   return '✓';
-  if (state==='run')  return '▶';
-  if (state==='err')  return '✕';
-  return '·';
-}
-function pillState(state) {
-  if (state==='ok')  return 'ok';
-  if (state==='run') return 'ok';
-  if (state==='err') return 'err';
-  return 'warn';
+function splitCalculBlocks(rows) {
+  const blocks = {};
+  let current = null;
+  rows.forEach(row => {
+    const a = row[0];
+    const matched = CALCUL_HEADERS.find(h => h.test(a));
+    if (matched) {
+      current = matched.key;
+      blocks[current] = { headerCols: row.map(v => (v || '').toString().trim().toLowerCase()), rows: [] };
+      return;
+    }
+    if (!current) return;
+    const isEmpty = row.every(v => v === null || v === '' || v === undefined);
+    if (isEmpty) return;
+    blocks[current].rows.push(row);
+  });
+  return blocks;
 }
 
-function buildPipeline(containerId, steps) {
+function findCol(headerCols, keyword) {
+  return headerCols.findIndex(h => h && h.includes(keyword));
+}
+
+function renderPipelineBlock(containerId, block) {
   const c = document.getElementById(containerId);
   c.innerHTML = '';
-  steps.forEach(s => {
+  if (!block || block.rows.length === 0) {
+    c.innerHTML = '<div class="state-msg" style="padding:18px 0">En attente de données — tableau à compléter dans le Google Sheet</div>';
+    return;
+  }
+  const statutIdx  = findCol(block.headerCols, 'statut');
+  const tailleIdx  = findCol(block.headerCols, 'taille');
+  const dateIdx    = findCol(block.headerCols, 'date');
+  const dureeIdx   = findCol(block.headerCols, 'temps');
+  const serviceIdx = findCol(block.headerCols, 'service');
+  const pointsIdx  = findCol(block.headerCols, 'points');
+
+  block.rows.forEach(row => {
+    const name = row[0] || (serviceIdx >= 0 ? row[serviceIdx] : null) || '—';
+    const state = mapState(statutIdx >= 0 ? row[statutIdx] : null);
+
+    const descParts = [];
+    if (serviceIdx >= 0 && row[serviceIdx] && row[0]) descParts.push(row[serviceIdx]);
+    if (pointsIdx >= 0 && row[pointsIdx]) descParts.push(row[pointsIdx] + ' pts');
+    const desc = descParts.join(' · ') || '—';
+
+    const size = tailleIdx >= 0 ? (row[tailleIdx] || '') : '';
+    const age = dateIdx >= 0 && row[dateIdx]
+      ? formatAge(row[dateIdx])
+      : (dureeIdx >= 0 && row[dureeIdx] ? row[dureeIdx] + 's' : '—');
+
     const div = document.createElement('div');
     div.className = 'pipe-step';
     div.innerHTML = `
-      <div class="pipe-icon ${s.state}">${iconSVG(s.state)}</div>
+      <div class="pipe-icon ${state}">${iconSVG(state)}</div>
       <div class="pipe-info">
-        <div class="pipe-name">${s.name}</div>
-        <div class="pipe-desc">${s.desc}</div>
+        <div class="pipe-name">${escapeHtml(name)}</div>
+        <div class="pipe-desc">${escapeHtml(desc)}</div>
       </div>
       <div class="pipe-meta">
-        ${s.size ? `<div style="color:var(--text-mid)">${s.size}</div>` : ''}
-        <div style="color:${s.state==='err'?'var(--red)':s.state==='run'?'var(--signal)':'var(--text-dim)'}">${s.age}</div>
+        ${size ? `<div style="color:var(--text-mid)">${escapeHtml(size)}</div>` : ''}
+        <div style="color:${state==='err'?'var(--red)':state==='run'?'var(--signal)':'var(--text-dim)'}">${escapeHtml(age)}</div>
       </div>`;
     c.appendChild(div);
   });
 }
 
-buildPipeline('pipeline-grib', GRIB_STEPS);
-buildPipeline('pipeline-obs',  OBS_STEPS);
-buildPipeline('pipeline-calc', CALC_STEPS);
+function updateLastRunPill(block) {
+  const label = document.getElementById('last-run-ago');
+  if (!block || block.rows.length === 0) { label.textContent = '—'; return; }
+  const dateIdx = findCol(block.headerCols, 'date');
+  if (dateIdx < 0) { label.textContent = '—'; return; }
+  const dates = block.rows.map(r => r[dateIdx]).filter(Boolean)
+    .map(s => new Date(s.toString().replace(' ', 'T'))).filter(d => !isNaN(d));
+  if (dates.length === 0) { label.textContent = '—'; return; }
+  label.textContent = formatAge(new Date(Math.max(...dates)));
+}
 
-// Dernière exécution (simulé)
-document.getElementById('last-run-ago').textContent = '2h 08m';
+function updateCalcPill(block) {
+  const pill = document.getElementById('calc-status-pill');
+  if (!block || block.rows.length === 0) {
+    pill.className = 'pill pill-warn';
+    pill.innerHTML = '<span class="dot"></span>En attente';
+    return;
+  }
+  const statutIdx = findCol(block.headerCols, 'statut');
+  const states = block.rows.map(r => mapState(statutIdx >= 0 ? r[statutIdx] : null));
+  if (states.includes('err')) {
+    pill.className = 'pill pill-err'; pill.innerHTML = '<span class="dot"></span>Erreur';
+  } else if (states.includes('run')) {
+    pill.className = 'pill pill-ok'; pill.innerHTML = '<span class="dot"></span>En cours';
+  } else if (states.length && states.every(s => s === 'ok')) {
+    pill.className = 'pill pill-ok'; pill.innerHTML = '<span class="dot"></span>Terminé';
+  } else {
+    pill.className = 'pill pill-warn'; pill.innerHTML = '<span class="dot"></span>Idle';
+  }
+}
 
-// ═══════════════════════════════════════════════════
-// SERVICES EXTERNES
-// ═══════════════════════════════════════════════════
-const SERVICES = [
-  { name:'Supabase (DB + Auth)',   url:'supabase.com',              state:'ok',  latency:'42 ms' },
-  { name:'GitHub (push scores)',   url:'api.github.com',            state:'ok',  latency:'118 ms' },
-  { name:'ECMWF Open Data',        url:'data.ecmwf.int',            state:'warn',latency:'timeout' },
-  { name:'ECMWF S3 Mirror',        url:'ecmwf-forecasts.s3.amazonaws.com', state:'ok', latency:'89 ms' },
-  { name:'NOAA NOMADS',            url:'nomads.ncep.noaa.gov',      state:'warn',latency:'HTTP 500' },
-  { name:'DWD Opendata',           url:'opendata.dwd.de',           state:'ok',  latency:'201 ms' },
-  { name:'Météo-France API',       url:'public-api.meteofrance.fr', state:'ok',  latency:'155 ms' },
-  { name:'CMEMS NRT',              url:'nrt.cmems-du.eu',           state:'ok',  latency:'334 ms' },
-  { name:'Ifremer ERDDAP',         url:'erddap.ifremer.fr',         state:'err', latency:'HTTP 404' },
-];
-
-function buildServiceList() {
+function renderServices(block) {
   const c = document.getElementById('service-list');
-  SERVICES.forEach(s => {
-    const pState = s.state==='ok' ? 'ok' : s.state==='warn' ? 'warn' : 'err';
+  c.innerHTML = '';
+  if (!block || block.rows.length === 0) {
+    c.innerHTML = '<div class="state-msg" style="padding:18px 0">Aucun service listé dans le Google Sheet</div>';
+    return;
+  }
+  block.rows.forEach(row => {
+    const name = row[0] || '—';
+    const statutRaw = row[1] || null;
+    const state = mapState(statutRaw);
     const div = document.createElement('div');
     div.className = 'service-row';
     div.innerHTML = `
       <div class="svc-left">
-        <div class="svc-name">${s.name}</div>
-        <div class="svc-url">${s.url}</div>
+        <div class="svc-name">${escapeHtml(name)}</div>
       </div>
       <div style="display:flex;flex-direction:column;align-items:flex-end;gap:4px">
-        <span class="pill pill-${pState}"><span class="dot"></span>${s.state.toUpperCase()}</span>
-        <div class="svc-latency"><strong>${s.latency}</strong></div>
+        <span class="pill pill-${state === 'err' ? 'err' : state === 'ok' ? 'ok' : 'warn'}">
+          <span class="dot"></span>${escapeHtml((statutRaw || '—').toString().toUpperCase())}
+        </span>
       </div>`;
     c.appendChild(div);
   });
 }
-buildServiceList();
+
+async function loadCalcul() {
+  try {
+    const table = await gvizFetch(SHEET_CALCUL);
+    const rows = tableToRows(table);
+    const blocks = splitCalculBlocks(rows);
+
+    renderPipelineBlock('pipeline-grib', blocks.grib);
+    updateLastRunPill(blocks.grib);
+
+    renderPipelineBlock('pipeline-obs', blocks.obs);
+
+    renderPipelineBlock('pipeline-calc', blocks.calc);
+    updateCalcPill(blocks.calc);
+
+    renderServices(blocks.services);
+  } catch (err) {
+    console.error('loadCalcul', err);
+    ['pipeline-grib','pipeline-obs','pipeline-calc'].forEach(id => {
+      document.getElementById(id).innerHTML = '<div class="state-msg state-err" style="padding:18px 0">Erreur de lecture du Google Sheet</div>';
+    });
+  }
+}
 
 // ═══════════════════════════════════════════════════
-// GIT LOG (simulé — remplacer par un appel à l'API GitHub)
+// GITHUB — derniers commits (API publique, sans clé)
 // ═══════════════════════════════════════════════════
-const GIT_COMMITS = [
-  { hash:'a3f91c2', msg:'feat: MFWAM vagues ajouté au pipeline', branch:'main',  ago:'2h 08m' },
-  { hash:'d09be51', msg:'fix: crash EmptyDataError NDBC stations.csv',branch:'main', ago:'6h 44m' },
-  { hash:'c82a014', msg:'chore: clés MF_API_KEY_* par variable d\'env', branch:'main', ago:'18h 20m' },
-  { hash:'01ff3d9', msg:'feat: score_engine.c — RMSE par point grille', branch:'dev',  ago:'1j 03h' },
-  { hash:'7e45b11', msg:'init: structure projet WeatherScore v0.2',     branch:'main', ago:'2j 14h' },
-];
-
-function buildGitLog() {
+async function loadGitCommits() {
   const c = document.getElementById('git-log');
-  GIT_COMMITS.forEach(g => {
-    const isMain = g.branch==='main';
-    const div = document.createElement('div');
-    div.className = 'pipe-step';
-    div.innerHTML = `
-      <div class="pipe-icon ok" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0;min-width:28px">${g.hash.slice(0,4)}</div>
-      <div class="pipe-info">
-        <div class="pipe-name" style="font-size:12px">${g.msg}</div>
-        <div class="pipe-desc">
-          <span style="color:${isMain?'var(--green)':'var(--amber)'}">${g.branch}</span>
-          · ${g.ago}
-        </div>
-      </div>`;
-    c.appendChild(div);
-  });
+  try {
+    const res = await fetch(`https://api.github.com/repos/${GITHUB_REPO}/commits?per_page=5`);
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const commits = await res.json();
+    c.innerHTML = '';
+    commits.forEach(commit => {
+      const hash = (commit.sha || '').slice(0, 7);
+      const msg = ((commit.commit && commit.commit.message) || '').split('\n')[0];
+      const dateStr = commit.commit && commit.commit.author ? commit.commit.author.date : null;
+      const div = document.createElement('div');
+      div.className = 'pipe-step';
+      div.innerHTML = `
+        <div class="pipe-icon ok" style="font-family:var(--font-mono);font-size:9px;letter-spacing:0;min-width:28px">${hash.slice(0,4)}</div>
+        <div class="pipe-info">
+          <div class="pipe-name" style="font-size:12px">${escapeHtml(msg)}</div>
+          <div class="pipe-desc"><span style="color:var(--green)">${escapeHtml(GITHUB_REPO)}</span> · ${formatAge(dateStr)}</div>
+        </div>`;
+      c.appendChild(div);
+    });
+    if (commits.length === 0) {
+      c.innerHTML = '<div class="state-msg" style="padding:18px 0">Aucun commit trouvé</div>';
+    }
+  } catch (err) {
+    console.error('loadGitCommits', err);
+    c.innerHTML = '<div class="state-msg state-err" style="padding:18px 0">Impossible de charger les commits GitHub</div>';
+  }
 }
-buildGitLog();
-
-// ═══════════════════════════════════════════════════
-// RÉSUMÉ SOURCES.PY
-// ═══════════════════════════════════════════════════
-const SOURCES_SUMMARY = [
-  { label:'GRIB téléchargés',  value:'8 / 10',  color:'var(--green)' },
-  { label:'Observations',       value:'5 / 6',   color:'var(--signal)' },
-  { label:'Volume total',       value:'28.1 Mo', color:'var(--text-mid)' },
-  { label:'Durée d\'exécution', value:'2m 08s',  color:'var(--text-mid)' },
-  { label:'Dernière zone',      value:'48–50°N / 8–1°W', color:'var(--text-mid)' },
-  { label:'Erreurs critiques',  value:'0',       color:'var(--green)' },
-  { label:'Warnings',           value:'3',       color:'var(--amber)' },
-];
-
-function buildSourcesSummary() {
-  const c = document.getElementById('sources-summary');
-  SOURCES_SUMMARY.forEach(s => {
-    const div = document.createElement('div');
-    div.style.cssText = 'display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid rgba(255,255,255,.04)';
-    div.innerHTML = `
-      <div style="font-family:var(--font-mono);font-size:10px;letter-spacing:1px;text-transform:uppercase;color:var(--text-dim)">${s.label}</div>
-      <div style="font-family:var(--font-mono);font-size:13px;font-weight:500;color:${s.color}">${s.value}</div>`;
-    c.appendChild(div);
-  });
-}
-buildSourcesSummary();
 
 // ═══════════════════════════════════════════════════
 // SUPABASE — UTILISATEURS
@@ -976,13 +1065,13 @@ async function fetchUsers() {
         <td>
           <div class="user-cell">
             <div class="avatar-circle">${initials.toUpperCase()}</div>
-            <div class="user-full">${nom} ${prenom}${isAdmin ? ' <span class="badge admin">Admin</span>':''}</div>
+            <div class="user-full">${escapeHtml(nom)} ${escapeHtml(prenom)}${isAdmin ? ' <span class="badge admin">Admin</span>':''}</div>
           </div>
         </td>
-        <td>${navire}</td>
-        <td style="color:var(--text-dim)">${compagnie}</td>
-        <td><span class="badge">${grade}</span></td>
-        <td class="user-email">${email}</td>
+        <td>${escapeHtml(navire)}</td>
+        <td style="color:var(--text-dim)">${escapeHtml(compagnie)}</td>
+        <td><span class="badge">${escapeHtml(grade)}</span></td>
+        <td class="user-email">${escapeHtml(email)}</td>
         <td><span class="status-dot"></span><span style="font-size:11px;color:var(--green)">Actif</span></td>
         <td style="color:var(--text-dim)">${created}</td>`;
       tbody.appendChild(tr);
@@ -1003,7 +1092,17 @@ async function fetchUsers() {
   }
 }
 
+// ═══════════════════════════════════════════════════
+// INIT + RAFRAÎCHISSEMENT
+// ═══════════════════════════════════════════════════
+loadServerLocal();
+loadCalcul();
+loadGitCommits();
 fetchUsers();
+
+setInterval(loadServerLocal, 60 * 1000);       // 1 min
+setInterval(loadCalcul, 60 * 1000);            // 1 min
+setInterval(loadGitCommits, 5 * 60 * 1000);    // 5 min (limite API GitHub non-auth)
 </script>
 </body>
 </html>
