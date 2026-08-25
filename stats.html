@@ -452,12 +452,12 @@ tbody tr:last-child td { border-bottom: none; }
   <div class="grid-4">
 
     <div class="card accent-warm">
-      <div class="card-label">CPU Temp.</div>
+      <div class="card-label">CPU %</div>
       <div class="card-value" id="cpu-temp" style="color:var(--amber)">—</div>
-      <div class="card-sub" id="cpu-sub">Intel Core i9 · 12 cœurs</div>
+      <div class="card-sub" id="cpu-sub">Intel Core i7 47110 MQ</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="cpu-bar" style="background:var(--amber); width:0%"></div></div>
-        <div class="gauge-labels"><span>0°C</span><span>100°C</span></div>
+        <div class="gauge-labels"><span>0%</span><span>100%</span></div>
       </div>
       <svg class="sparkline" id="spark-cpu" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
         <polyline id="spark-cpu-line" stroke="var(--amber)" stroke-width="1.2"/>
@@ -467,10 +467,10 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="card accent-signal">
       <div class="card-label">RAM utilisée</div>
       <div class="card-value" id="ram-val" style="color:var(--signal)">—</div>
-      <div class="card-sub" id="ram-sub">/ 32 Go DDR5</div>
+      <div class="card-sub" id="ram-sub">/ 7.9 GO</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="ram-bar" style="background:var(--signal); width:0%"></div></div>
-        <div class="gauge-labels"><span>0</span><span>32 Go</span></div>
+        <div class="gauge-labels"><span>0</span><span>7.9 Go</span></div>
       </div>
       <svg class="sparkline" id="spark-ram" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
         <polyline id="spark-ram-line" stroke="var(--signal)" stroke-width="1.2"/>
@@ -480,10 +480,10 @@ tbody tr:last-child td { border-bottom: none; }
     <div class="card accent-green">
       <div class="card-label">Disque GRIB</div>
       <div class="card-value" id="disk-val" style="color:var(--green)">—</div>
-      <div class="card-sub" id="disk-sub">SSD 2 To · data_marine/</div>
+      <div class="card-sub" id="disk-sub">HDD 116 Go· C:/</div>
       <div class="gauge-wrap">
         <div class="gauge-bar"><div class="gauge-fill" id="disk-bar" style="background:var(--green); width:0%"></div></div>
-        <div class="gauge-labels"><span>0</span><span>2 To</span></div>
+        <div class="gauge-labels"><span>0</span><span>116 Go</span></div>
       </div>
       <svg class="sparkline" id="spark-disk" viewBox="0 0 120 32" preserveAspectRatio="none" fill="none">
         <polyline id="spark-disk-line" stroke="var(--green)" stroke-width="1.2"/>
