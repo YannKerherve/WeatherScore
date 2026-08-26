@@ -1,0 +1,102 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>GRIB Explorer</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--bg:#0d1117;--panel:#161e29;--panel2:#1e2a38;--border:#2b3c50;--text:#dbe7f3;--muted:#7e92a8;--accent:#00d4ff;--accent2:#ffb000}
+*{box-sizing:border-box}html,body,#app{height:100%;margin:0}body{background:var(--bg);color:var(--text);font:13px Inter,Arial,sans-serif;overflow:hidden}
+#app{display:grid;grid-template-columns:290px 1fr 310px;grid-template-rows:52px 1fr 92px}
+header{grid-column:1/-1;background:var(--panel);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 16px;gap:16px}
+.logo{font:700 15px monospace;letter-spacing:2px;color:var(--accent)}.sub{color:var(--muted);font-size:11px}.spacer{flex:1}.status{font:11px monospace;color:var(--accent2)}
+aside{background:var(--panel);overflow:auto}.left{border-right:1px solid var(--border)}.right{border-left:1px solid var(--border)}
+.section{padding:14px;border-bottom:1px solid var(--border)}h3{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--muted);margin:0 0 10px}
+.drop{border:1px dashed #466079;padding:18px;text-align:center;border-radius:6px;cursor:pointer;color:var(--muted)}.drop:hover{border-color:var(--accent);color:var(--text)}input[type=file]{display:none}
+.file{border:1px solid var(--border);background:var(--panel2);padding:10px;border-radius:6px;margin-bottom:7px;cursor:pointer}.file.active{border-color:var(--accent)}.fname{font:11px monospace;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.meta{color:var(--muted);font-size:10px;margin-top:5px;line-height:1.5}
+#map{position:relative;background:#0b1016}.leaflet-container{background:#0b1016}.overlay{position:absolute;z-index:500;top:12px;left:12px;background:rgba(13,17,23,.9);border:1px solid var(--border);border-radius:6px;padding:10px;min-width:170px;pointer-events:none}.overlay b{color:var(--accent)}
+select,button{width:100%;background:var(--panel2);border:1px solid var(--border);color:var(--text);border-radius:5px;padding:8px;font-size:12px}select:focus{outline:1px solid var(--accent)}
+.row{display:flex;gap:7px}.row>*{flex:1}.value{font:12px monospace;color:var(--accent);margin-top:8px}.empty{color:var(--muted);line-height:1.6}
+#timeline{grid-column:1/-1;background:var(--panel);border-top:1px solid var(--border);padding:10px 16px;display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center}.play{width:44px;font-size:18px}.time{font:12px monospace;color:var(--accent);text-align:right;min-width:180px}.range{width:100%}
+.legend{position:absolute;right:12px;bottom:12px;z-index:500;background:rgba(13,17,23,.9);border:1px solid var(--border);padding:8px;border-radius:5px;font:10px monospace}.bar{height:9px;width:160px;background:linear-gradient(90deg,#273c9b,#00b5d8,#48d66f,#ffd33d,#f4513a);margin:5px 0}.leaflet-control-attribution{font-size:9px}
+@media(max-width:900px){#app{grid-template-columns:220px 1fr;grid-template-rows:52px 1fr 92px}.right{display:none}}
+</style>
+</head>
+<body>
+<div id="app">
+<header><div class="logo">GRIB EXPLORER</div><div class="sub">Lecture GRIB1 / GRIB2 · carte · variables · échéances</div><div class="spacer"></div><div id="status" class="status">Aucun GRIB</div></header>
+<aside class="left">
+  <div class="section"><h3>Ajouter des GRIB</h3><label class="drop" id="drop">Déposer ici vos .grib / .grb / .grib2<br>ou cliquer pour choisir<input id="file" type="file" multiple accept=".grib,.grb,.grib2,.grb2"></label></div>
+  <div class="section"><h3>Fichiers</h3><div id="files" class="empty">Chargement…</div></div>
+</aside>
+<main id="map"><div id="leaflet"></div><div class="overlay">Modèle / fichier<br><b id="oFile">—</b><br><br>Donnée<br><b id="oVar">—</b><br><br>Échéance<br><b id="oTime">—</b></div><div class="legend"><div id="legendTitle">Valeur</div><div class="bar"></div><span id="legendMin">—</span><span style="float:right" id="legendMax">—</span></div></main>
+<aside class="right">
+  <div class="section"><h3>Fichier / modèle</h3><select id="fileSelect"></select></div>
+  <div class="section"><h3>Donnée</h3><select id="varSelect"></select><div id="varInfo" class="value">—</div></div>
+  <div class="section"><h3>Échéance</h3><select id="timeSelect"></select><div id="msgInfo" class="meta">—</div></div>
+  <div class="section"><h3>Lecture</h3><div class="row"><button id="prev">◀</button><button id="next">▶</button></div><div style="height:7px"></div><button id="fit">Recadrer sur le GRIB</button></div>
+  <div class="section"><h3>Point sous la souris</h3><div id="point" class="empty">Déplacez la souris sur la carte.</div></div>
+</aside>
+<div id="timeline"><button class="play" id="play">▶</button><input class="range" id="range" type="range" min="0" max="0" value="0"><div class="time" id="timeLabel">—</div></div>
+</div>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const state={files:[],messages:[],data:null,index:0,playing:false,timer:null};
+const $=id=>document.getElementById(id);
+const map=L.map('leaflet',{worldCopyJump:true,zoomControl:true}).setView([46,2],5);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenStreetMap contributors'}).addTo(map);
+let layer=null, pointLayer=null;
+
+function fmtDate(s){if(!s)return '—'; if(/^\d{12}$/.test(s)){return `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)} ${s.slice(8,10)}:${s.slice(10,12)} UTC`;} return s;}
+function unique(arr,key){const m=new Map();arr.forEach(x=>m.set(key(x),x));return [...m.values()];}
+function selectedFile(){return state.files.find(f=>f.filename===$('fileSelect').value)}
+function rebuildControls(){
+ const fs=$('fileSelect'); fs.innerHTML=state.files.map(f=>`<option>${esc(f.filename)}</option>`).join('');
+ const f=selectedFile();
+ if(!f){$('varSelect').innerHTML='';$('timeSelect').innerHTML='';return;}
+ const vars=unique(f.messages,m=>`${m.shortName}|${m.typeOfLevel}|${m.level}`);
+ $('varSelect').innerHTML=vars.map(k=>{const m=f.messages.find(x=>`${x.shortName}|${x.typeOfLevel}|${x.level}`===k);return `<option value="${esc(k)}">${esc(m.name||m.shortName)} — ${esc(m.shortName)}${m.level!=null?' @ '+m.level:''}</option>`}).join('');
+ updateTimes();
+}
+function updateTimes(){
+ const f=selectedFile(); if(!f)return;
+ const key=$('varSelect').value; const msgs=f.messages.filter(m=>`${m.shortName}|${m.typeOfLevel}|${m.level}`===key);
+ $('timeSelect').innerHTML=msgs.map(m=>`<option value="${m.index}">${fmtDate(m.validTime)}${m.step?` · +${esc(m.step)}`:''}</option>`).join('');
+ state.messages=msgs; state.index=0; $('range').max=Math.max(0,msgs.length-1); $('range').value=0; loadCurrent();
+}
+async function loadCurrent(){
+ const m=state.messages[state.index]; if(!m){clearMap();return}
+ $('timeSelect').value=m.index; $('timeLabel').textContent=fmtDate(m.validTime); $('oFile').textContent=m.filename; $('oVar').textContent=`${m.name||m.shortName} (${m.units||'—'})`; $('oTime').textContent=fmtDate(m.validTime); $('varInfo').textContent=`${m.units||'unité inconnue'} · niveau ${m.level??'—'} · grille ${m.gridType||'—'}`; $('msgInfo').textContent=`GRIB${m.edition} · ${m.gridType||'—'} · ${m.Ni??'?'}×${m.Nj??'?'}`;
+ $('status').textContent='Lecture…';
+ try{const r=await fetch('/api/data?id='+encodeURIComponent(m.id)); if(!r.ok)throw new Error(await r.text()); state.data=await r.json(); renderData(); $('status').textContent=`${state.files.length} fichier(s)`;}catch(e){$('status').textContent='Erreur de lecture'; console.error(e); clearMap();}
+}
+function renderData(){
+ if(layer)map.removeLayer(layer); layer=L.layerGroup().addTo(map);
+ const d=state.data, vals=d.value.filter(v=>v!==null&&Number.isFinite(v)); if(!vals.length){return}
+ const min=Math.min(...vals),max=Math.max(...vals); $('legendMin').textContent=formatVal(min);$('legendMax').textContent=formatVal(max);$('legendTitle').textContent=`${d.meta.name||d.meta.shortName} ${d.meta.units||''}`;
+ // Render each GRIB point as a small square. Works with regular and irregular grids.
+ const n=d.value.length; const valid=[]; for(let i=0;i<n;i++){if(d.value[i]!==null&&Number.isFinite(d.lat[i])&&Number.isFinite(d.lon[i]))valid.push(i)}
+ let stepLat=0.25,stepLon=0.25;
+ if(valid.length>2){const lats=[...new Set(valid.slice(0,Math.min(valid.length,5000)).map(i=>d.lat[i].toFixed(5)))].map(Number).sort((a,b)=>a-b);const lons=[...new Set(valid.slice(0,Math.min(valid.length,5000)).map(i=>d.lon[i].toFixed(5)))].map(Number).sort((a,b)=>a-b);if(lats.length>1)stepLat=Math.max(.01,Math.abs(lats[1]-lats[0]));if(lons.length>1)stepLon=Math.max(.01,Math.abs(lons[1]-lons[0]));}
+ for(const i of valid){const t=max===min?.5:(d.value[i]-min)/(max-min);const c=heat(t);const r=Math.max(.03,Math.min(stepLat,stepLon)*0.58);L.rectangle([[d.lat[i]-r,d.lon[i]-r],[d.lat[i]+r,d.lon[i]+r]],{stroke:false,fillColor:c,fillOpacity:.72,interactive:false}).addTo(layer)}
+ const bounds=L.latLngBounds(valid.map(i=>[d.lat[i],d.lon[i]])); if(bounds.isValid()){$('fit').onclick=()=>map.fitBounds(bounds.pad(.05)); if(!state._fitted){map.fitBounds(bounds.pad(.05));state._fitted=true}}
+}
+function clearMap(){if(layer){map.removeLayer(layer);layer=null}}
+function heat(t){const stops=[[39,55,155],[0,181,216],[72,214,111],[255,211,61],[244,81,58]];const x=Math.max(0,Math.min(1,t))*(stops.length-1),i=Math.min(stops.length-2,Math.floor(x)),f=x-i,a=stops[i],b=stops[i+1];return`rgb(${Math.round(a[0]+(b[0]-a[0])*f)},${Math.round(a[1]+(b[1]-a[1])*f)},${Math.round(a[2]+(b[2]-a[2])*f)})`}
+function formatVal(v){if(!Number.isFinite(v))return'—';return Math.abs(v)>=1000?v.toFixed(0):v.toFixed(2)}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
+function renderFiles(){
+ $('files').innerHTML=state.files.length?state.files.map(f=>`<div class="file ${f.filename===$('fileSelect').value?'active':''}" data-file="${esc(f.filename)}"><div class="fname">${esc(f.filename)}</div><div class="meta">${f.messages.length} message(s) · ${(f.size/1048576).toFixed(2)} MB</div></div>`).join(''):'<div class="empty">Aucun GRIB.</div>';
+ document.querySelectorAll('.file').forEach(el=>el.onclick=()=>{$('fileSelect').value=el.dataset.file;state._fitted=false;rebuildControls();renderFiles()});
+}
+async function refresh(){const r=await fetch('/api/files');const j=await r.json();state.files=j.files.filter(f=>f.messages.length);state._fitted=false;rebuildControls();renderFiles();$('status').textContent=`${state.files.length} fichier(s)`}
+$('fileSelect').onchange=()=>{state._fitted=false;rebuildControls();renderFiles()};$('varSelect').onchange=updateTimes;$('timeSelect').onchange=()=>{state.index=state.messages.findIndex(m=>m.index==Number($('timeSelect').value));$('range').value=state.index;loadCurrent()};
+$('range').oninput=()=>{state.index=Number($('range').value);loadCurrent()};$('prev').onclick=()=>{state.index=Math.max(0,state.index-1);$('range').value=state.index;loadCurrent()};$('next').onclick=()=>{state.index=Math.min(state.messages.length-1,state.index+1);$('range').value=state.index;loadCurrent()};$('play').onclick=()=>{state.playing=!state.playing;$('play').textContent=state.playing?'⏸':'▶';if(state.playing){state.timer=setInterval(()=>{$('next').click();if(state.index>=state.messages.length-1){state.playing=false;clearInterval(state.timer);$('play').textContent='▶'}},700)}else clearInterval(state.timer)};
+$('drop').onclick=()=>$('file').click();$('file').onchange=upload;$('drop').ondragover=e=>{e.preventDefault()};$('drop').ondrop=e=>{e.preventDefault();upload({target:{files:e.dataTransfer.files}})};
+async function upload(e){if(!e.target.files?.length)return;const fd=new FormData();for(const f of e.target.files)fd.append('files',f);$('status').textContent='Import…';const r=await fetch('/api/upload',{method:'POST',body:fd});if(!r.ok){alert(await r.text());return}await refresh()}
+map.on('mousemove',e=>{if(!state.data)return;let best=-1,bd=Infinity;for(let i=0;i<state.data.value.length;i++){if(state.data.value[i]===null)continue;const dl=e.latlng.lat-state.data.lat[i],dn=(e.latlng.lng-state.data.lon[i])*Math.cos(e.latlng.lat*Math.PI/180),dd=dl*dl+dn*dn;if(dd<bd){bd=dd;best=i}}if(best>=0){$('point').innerHTML=`<b>${e.latlng.lat.toFixed(3)}°N</b> · <b>${e.latlng.lng.toFixed(3)}°E</b><br><span class="value">${formatVal(state.data.value[best])} ${state.data.meta.units||''}</span>`}});
+refresh();
+</script>
+</body>
+</html>
