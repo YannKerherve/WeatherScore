@@ -1334,7 +1334,7 @@ const windyMap = L.map('windy-map', {
   touchZoom: false, doubleClickZoom: false,
   keyboard: false
 });
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
   subdomains: 'abcd', maxZoom: 19
 }).addTo(windyMap);
 
@@ -1344,12 +1344,12 @@ const wsMap = L.map('ws-map', {
   zoomControl: false, attributionControl: true,
   preferCanvas: true
 });
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
   subdomains: 'abcd', maxZoom: 19
 }).addTo(wsMap);
 const labelsPane = wsMap.createPane('labels');
 labelsPane.style.zIndex = 650; labelsPane.style.pointerEvents = 'none';
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
   subdomains: 'abcd', maxZoom: 19, pane: 'labels'
 }).addTo(wsMap);
 
