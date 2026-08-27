@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeatherScore</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="icon" type="image/png" href="facion.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: system-ui, sans-serif; background: #111; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+#map { flex: 1; min-height: 0; }
+
+/* ── BOTTOM BAR ── */
+#bottom-bar {
+  height: 40px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  flex-shrink: 0;
+  z-index: 1000;
+}
+
+.bar-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  background: #2a2a2a; border: 1px solid #444; border-radius: 4px;
+  color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s; font-family: inherit;
+}
+.bar-btn:hover { background: #333; border-color: #666; color: #fff; }
+.bar-btn.active { background: #1d3a5f; border-color: #4a90d9; color: #7bc3ff; }
+.bar-btn.ok { border-color: #4ade80 !important; color: #4ade80 !important; }
+
+.bar-sep { width: 1px; height: 22px; background: #333; flex-shrink: 0; }
+
+#update-info { font-size: 11px; color: #888; white-space: nowrap; }
+#update-info b { color: #aaa; font-weight: 500; }
+
+.zoom-btn {
+  width: 30px; height: 30px;
+  background: #2a2a2a; border: 1px solid #444; border-radius: 4px;
+  color: #ccc; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s; font-family: inherit;
+}
+.zoom-btn:hover { background: #333; color: #fff; }
+#zoom-level { font-size: 11px; color: #666; min-width: 30px; text-align: center; }
+.bar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+#pt-info { font-size: 11px; color: #555; }
+#by { font-size: 11px; color: #555; }
+
+#map-logo{
+  position: fixed;
+  right: 12px;
+  bottom: 62px; /* juste au-dessus de la barre */
+  width: 90px;  /* taille du logo */
+  opacity: 0.6;
+  z-index: 950;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── SCORE PANEL ── */
+#panel {
+  position: fixed;
+  right: 10px;
+  bottom: 50px;
+  width: 640px;
+  height: auto;
+  max-height: 480px;
+  background: #181818;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  z-index: 2000;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  transform: translateX(660px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s cubic-bezier(0.4,0,0.2,1), transform .25s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── SIDE MENU ── */
+#side-menu {
+  position: fixed;
+  top: 0;
+  left: -280px; /* Caché par défaut */
+  width: 280px;
+  height: 100%;
+  background: #181818;
+  border-right: 1px solid #333;
+  z-index: 3000;
+  transition: left 0.3s ease;
+  padding: 20px;
+  box-shadow: 5px 0 15px rgba(0,0,0,0.5);
+}
+
+
+.menu-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 24px;
+  cursor: pointer;
+}
+.menu-close:hover { color: #fff; }
+
+.menu-title {
+  color: #7bc3ff;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+.menu-subtitle {
+  color: #7bc3ff;
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+    letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.menu-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+#side-menu.open {
+  left: 0; /* Glisse vers la droite */
+}
+
+.menu-link {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background 0.2s;
+}
+
+.menu-link:hover {
+  background: #2a2a2a;
+  color: #fff;
+}
+
+/* Overlay pour fermer le menu en cliquant à côté */
+#menu-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  z-index: 2900;
+}
+#menu-overlay.active { display: block; }
+
+#login-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: #0a0a0a;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999; /* Au-dessus de tout */
+  color: white;
+  transition: opacity 0.5s ease;
+}
+#login-box {
+  background: #181818;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+#login-box h2 { color: #7bc3ff; margin-bottom: 20px; font-size: 18px; }
+#login-box input {
+  background: #222; border: 1px solid #444;
+  padding: 10px; color: white; border-radius: 4px;
+  width: 200px; text-align: center; margin-bottom: 15px;
+  outline: none;
+}
+#login-box input:focus { border-color: #7bc3ff; }
+#login-box button {
+  background: #1d3a5f; color: #7bc3ff;
+  border: 1px solid #4a90d9; padding: 8px 20px;
+  border-radius: 4px; cursor: pointer; font-weight: bold;
+}
+#login-box button:hover { background: #244a7a; }
+.error-msg { color: #f87171; font-size: 12px; margin-top: 10px; display: none; }
+
+
+
+
+/* ── EXPORT POPUP ── */
+#export-popup {
+  position: fixed;
+  bottom: 50px; /* Juste au-dessus de la barre */
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  width: 320px;
+  background: #181818;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  z-index: 2500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#export-popup.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(-50%) translateY(0);
+}
+
+.exp-title { color: #7bc3ff; font-size: 13px; font-weight: 600; margin-bottom: 10px; display: block; }
+.exp-txt { color: #999; font-size: 11px; margin-bottom: 12px; line-height: 1.4; }
+
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+.exp-opt {
+  background: #252525; border: 1px solid #444; color: #ccc;
+  padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer;
+  text-align: center; transition: all 0.15s;
+}
+.exp-opt:hover { background: #333; border-color: #7bc3ff; color: #fff; }
+
+.exp-footer {
+  border-top: 1px solid #2a2a2a; padding-top: 10px;
+  font-size: 10px; color: #666; text-align: center;
+  cursor: pointer; line-height: 1.3;
+}
+.exp-footer:hover { color: #aaa; }
+
+/*gribcorrected-popup*/
+
+#gribcorrected-popup {
+  position: fixed;
+  bottom: 50px; /* Juste au-dessus de la barre */
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  width: 320px;
+  background: #181818;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  z-index: 2500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+#gribcorrected-popup.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(-50%) translateY(0);
+}
+
+.exp-title { color: #7bc3ff; font-size: 13px; font-weight: 600; margin-bottom: 10px; display: block; }
+.exp-txt { color: #999; font-size: 11px; margin-bottom: 12px; line-height: 1.4; }
+
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+.exp-opt {
+  background: #252525; border: 1px solid #444; color: #ccc;
+  padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer;
+  text-align: center; transition: all 0.15s;
+}
+.exp-opt:hover { background: #333; border-color: #7bc3ff; color: #fff; }
+
+.exp-footer {
+  border-top: 1px solid #2a2a2a; padding-top: 10px;
+  font-size: 10px; color: #666; text-align: center;
+  cursor: pointer; line-height: 1.3;
+}
+.exp-footer:hover { color: #aaa; }
+
+
+#panel.open { opacity: 1; transform: translateX(0); pointer-events: all; }
+
+/* ── SELECTED POINT RING ── */
+.selected-ring {
+  stroke: #fff !important;
+  stroke-width: 2 !important;
+  fill-opacity: 1 !important;
+}
+
+/* ── STAR POPUP ── */
+#star-popup {
+  position: fixed;
+  z-index: 1800;
+  pointer-events: none;
+  display: none;
+}
+
+/* ── COLOR MODE TOGGLE ── */
+#color-mode-btn.active { background: #1d3a5f; border-color: #4a90d9; color: #7bc3ff; }
+
+.ph { padding: 10px 14px 0; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+.ph-row1 { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
+.p-coords { font-size: 13px; font-weight: 600; color: #7bc3ff; font-family: monospace; }
+.p-zone { font-size: 12px; color: #666; }
+.p-best { margin-left: auto; font-size: 12px; color: #4ade80; font-weight: 600; }
+.p-close {
+  background: none; border: 1px solid #3a3a3a; border-radius: 3px;
+  color: #666; width: 24px; height: 24px; cursor: pointer;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+}
+.p-close:hover { color: #fff; border-color: #666; }
+
+.p-tabs { display: flex; }
+.ptab {
+  padding: 5px 14px; font-size: 11px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: #555; cursor: pointer;
+  font-family: inherit; transition: color .15s;
+}
+.ptab.active { color: #7bc3ff; border-bottom-color: #7bc3ff; }
+.ptab:hover:not(.active) { color: #999; }
+
+.pb { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+.pb::-webkit-scrollbar { width: 4px; }
+.pb::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
+
+.tc { display: none; }
+.tc.active { display: block; }
+.sec-head {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em;
+  color: #444; padding: 8px 14px 4px;
+}
+
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+thead th {
+  font-size: 9px; font-weight: 500; color: #444; text-transform: uppercase;
+  letter-spacing: .08em; padding: 5px 5px; text-align: center;
+  border-bottom: 1px solid #222; white-space: nowrap;
+}
+thead th:first-child { text-align: left; padding-left: 14px; min-width: 145px; }
+tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background .1s; }
+tbody tr:hover { background: rgba(255,255,255,0.03); }
+tbody tr.brow { background: rgba(74,222,128,0.07); }
+td { padding: 7px 5px; text-align: center; vertical-align: middle; }
+td:first-child { text-align: left; padding-left: 14px; }
+.mn { font-weight: 600; font-size: 12px; color: #ddd; }
+.ms { font-size: 10px; color: #444; margin-top: 1px; }
+.btag { display: inline-block; font-size: 8.5px; background: #4ade80; color: #042a14; padding: 1px 5px; border-radius: 2px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
+
+.sc { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sc-bar { width: 26px; height: 3px; background: #252525; border-radius: 2px; overflow: hidden; }
+.sc-fill { height: 100%; border-radius: 2px; }
+.sc-v { font-size: 10.5px; font-weight: 500; }
+.nd { font-size: 10px; color: #333; }
+
+.t5 .sc-fill { background: #4ade80; } .t5 .sc-v { color: #4ade80; }
+.t4 .sc-fill { background: #86efac; } .t4 .sc-v { color: #86efac; }
+.t3 .sc-fill { background: #fbbf24; } .t3 .sc-v { color: #fbbf24; }
+.t2 .sc-fill { background: #f97316; } .t2 .sc-v { color: #f97316; }
+.t1 .sc-fill { background: #f87171; } .t1 .sc-v { color: #f87171; }
+
+.tot { font-size: 14px; font-weight: 700; }
+
+/* Leaflet overrides */
+.leaflet-control-zoom { display: none !important; }
+.leaflet-control-attribution { font-size: 9px !important; opacity: .4; background: rgba(0,0,0,.5) !important; color: #666 !important; }
+.leaflet-control-attribution a { color: #666 !important; }
+
+/* Zone tooltip */
+.zt {
+  background: rgba(10,10,10,.85) !important;
+  border: 1px solid rgba(255,255,255,.15) !important;
+  border-radius: 3px !important;
+  color: #ddd !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+.zt::before { display: none !important; }
+
+/* Legend */
+#legend {
+  position: fixed;
+  bottom: 50px; left: 10px;
+  background: rgba(18,18,18,.92);
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  z-index: 900;
+  font-size: 11px;
+  color: #999;
+  pointer-events: none;
+}
+#legend .lt { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #444; margin-bottom: 5px; }
+.li { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+</head>
+<body>
+<div id="map"></div>
+
+<img id="map-logo" src="ENSM.png" alt="Logo">
+
+<!-- MENU GÉNÉRAL -->
+<div id="menu-overlay" onclick="toggleMenu()"></div>
+<div id="side-menu">
+  <button class="menu-close" onclick="toggleMenu()">✕</button>
+  <div class="menu-title"><img src="facion.png" height="30"/> WeatherScore</div>
+  <nav class="menu-links">
+    <a href="welcome.html" class="menu-link">Dashboard</a>
+    <div class="menu-subtitle">Product</div>
+    <a href="modelmap.html" class="menu-link">Model map</a>
+    <a href="liveratting.html" class="menu-link">Live ratting</a>
+    <a href="export.html" class="menu-link">Export</a>
+    <a href="api.html" class="menu-link">API</a>
+    <div class="menu-subtitle">Ressources</div>
+    <a href="documentation.html" class="menu-link">Documentation</a>
+    <a href="tutorial.html" class="menu-link">Tutorial</a>
+    <a href="methodology.html" class="menu-link">Methodology</a>
+    <div class="menu-subtitle">Company</div>
+    <a href="company.html" class="menu-link">Partners</a>
+    <a href="company.html" class="menu-link">Credits</a>
+    <a href="company.html" class="menu-link">Contact</a>
+    <a href="company.html" class="menu-link">Privacy</a>
+  </nav>
+</div>
+
+
+<!-- SCORE PANEL -->
+<div id="panel">
+  <div class="ph">
+    <div class="ph-row1">
+      <span class="p-coords" id="pc">—</span>
+      <span class="p-zone" id="pz"></span>
+      <span class="p-best" id="pb"></span>
+      <button class="p-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="p-tabs">
+      <button class="ptab active" onclick="showTab('atmo',this)">Atmosphériques</button>
+      <button class="ptab" onclick="showTab('ocean',this)">Océaniques</button>
+      <button class="ptab" onclick="showTab('vague',this)">Vagues</button>
+    </div>
+  </div>
+  <div class="pb">
+    <div id="tab-atmo" class="tc active">
+      <div class="sec-head">Modèles atmosphériques</div>
+      <table>
+        <thead><tr><th>Modèle</th><th>Synop</th><th>Bateaux</th><th>ASCAT</th><th>Sat. IR</th><th>Bouée dérive</th><th>Radiosonde</th><th>Radar</th><th>/5</th></tr></thead>
+        <tbody id="tb-atmo"></tbody>
+      </table>
+    </div>
+    <div id="tab-ocean" class="tc">
+      <div class="sec-head">Modèles océaniques</div>
+      <table>
+        <thead><tr><th>Modèle</th><th>Bouée ancrée</th><th>Altimétrie</th><th>SST Sat.</th><th>Argo float</th><th>Glider</th><th>Courantomètre</th><th>/5</th></tr></thead>
+        <tbody id="tb-ocean"></tbody>
+      </table>
+    </div>
+    <div id="tab-vague" class="tc">
+      <div class="sec-head">Modèles de vagues</div>
+      <table>
+        <thead><tr><th>Modèle</th><th>Bouée dir.</th><th>Altimétrie Hs</th><th>SAR</th><th>Bouée houle</th><th>Obs. visuelles</th><th>/5</th></tr></thead>
+        <tbody id="tb-vague"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- STAR POPUP -->
+<div id="star-popup"></div>
+
+<!-- LEGEND -->
+<div id="legend">
+  <div class="lt" id="legend-title">Meilleur modèle atmo.</div>
+  <div id="legend-items"></div>
+</div>
+
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <button class="bar-btn" id="btn-main-menu" onclick="toggleMenu()">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+  <path d="M2 3H12"/>
+  <path d="M2 7H12"/>
+  <path d="M2 11H12"/>
+</svg>
+    Menu
+  </button>
+
+
+  <div class="bar-sep"></div>
+  <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 5.5H8.5C10 5.5 10.8 4.8 10.8 3.8C10.8 2.9 10.1 2.2 9.2 2.2C8.4 2.2 7.8 2.7 7.6 3.4"/>
+  <path d="M2 8.5H10C11.2 8.5 12 9.2 12 10.2C12 11.1 11.3 11.8 10.4 11.8C9.6 11.8 9 11.3 8.8 10.6"/>
+</svg>
+    Atmosphérique
+  </button>
+    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 5C3 4 4 4 5 5C6 6 7 6 8 5C9 4 10 4 11 5"/>
+  <path d="M2 9C3 8 4 8 5 9C6 10 7 10 8 9C9 8 10 8 11 9"/>
+</svg>
+    Courants
+  </button>
+    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M1.5 8C2.5 6 3.5 6 4.5 8C5.5 10 6.5 10 7.5 8C8.5 6 9.5 6 10.5 8C11.5 10 12.5 10 13 8"/>
+</svg>
+    Vagues
+  </button>
+  <div class="bar-sep"></div>
+  <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+      <polygon points="2,7 7,2 12,7 7,12"/>
+    </svg>
+    Zones modèles
+  </button>
+
+  <div class="bar-sep"></div>
+  <button class="bar-btn" id="color-mode-btn" onclick="toggleColorMode(this)" title="Basculer couleur modèle / score">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="7" cy="7" r="5"/><path d="M7 2v10"/>
+    </svg>
+    Mode couleur
+  </button>
+
+  <div class="bar-sep"></div>
+
+  <div id="update-info">Dernière MAJ : <b id="last-update">—</b></div>
+
+  <button class="bar-btn" id="btn-reload" onclick="reloadData()">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M12 7A5 5 0 1 1 7 2M12 2v4H8"/>
+    </svg>
+    Recharger
+  </button>
+
+<div class="bar-sep"></div>
+
+  <button class="bar-btn" id="btn-export" onclick="toggleExport(event)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 2V9"/>
+  <path d="M4.5 6.5L7 9L9.5 6.5"/>
+  <path d="M2.5 11.5H11.5"/>
+</svg>
+    Exporter
+  </button>
+    <button class="bar-btn" id="btn-reload" onclick="https://www.windy.com/plugin/wscore/">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8 2H12V6"/>
+  <path d="M12 2L7 7"/>
+  <path d="M6 3H3.5C2.7 3 2 3.7 2 4.5V10.5C2 11.3 2.7 12 3.5 12H9.5C10.3 12 11 11.3 11 10.5V8"/>
+</svg>
+    Ouvrir dans Windy
+  </button>
+
+
+  <button class="bar-btn" id="btn-grib" onclick="toggleGribExport(event)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 2V9"/>
+  <path d="M4.5 6.5L7 9L9.5 6.5"/>
+  <path d="M2.5 11.5H11.5"/>
+</svg>
+    Télécharger Grib corrigé
+  </button>
+
+  <div class="bar-right">
+  <span id="by">Yann Kerhervé</span>
+    <div class="bar-sep"></div>
+    <span id="pt-info"></span>
+    <div class="bar-sep"></div>
+    <button class="zoom-btn" onclick="map.zoomIn()">+</button>
+    <span id="zoom-level">z3</span>
+    <button class="zoom-btn" onclick="map.zoomOut()">−</button>
+    <div class="bar-sep"></div>
+    <a class="zoom-btn" href="welcome.html"><img src="Av.png" width="10"></a>
+  </div>
+</div>
+
+
+<div id="export-popup">
+  <span class="exp-title">Configuration de l'export</span>
+  <p class="exp-txt">Veuillez sélectionner la zone à exporter sur la carte, puis choisissez votre logiciel :</p>
+
+  <div class="exp-grid">
+    <div class="exp-opt" onclick="closeExport()">Adrena</div>
+    <div class="exp-opt" onclick="closeExport()">TimeZero</div>
+    <div class="exp-opt" onclick="closeExport()">Xygrib</div>
+    <div class="exp-opt" onclick="closeExport()">Simsail</div>
+    <div class="exp-opt" onclick="closeExport()">Tactics</div>
+    <div class="exp-opt" onclick="closeExport()">Bon Voyage</div>
+  </div>
+
+  <div class="exp-footer" onclick="window.location.href='mailto:dev@example.com'">
+    Je souhaite exporter vers un autre fichier,<br><b>je contacte le développeur</b>
+  </div>
+</div>
+
+<div id="gribcorrected-popup">
+  <span class="exp-title">Configuration de l'export d'un grib corrigé</span>
+  <p class="exp-txt">Veuillez sélectionner la zone à exporter sur la carte</p>
+
+  <div class="exp-grid">
+    <div class="exp-opt" onclick="closegribExport()">Monomodèle corrigé</div>
+    <div class="exp-opt" onclick="closegribExport()">Multimodèle non corrigé</div>
+    <div class="exp-opt" onclick="closegribExport()">Multimodèle corrigé</div>
+  </div>
+
+  <div class="exp-footer" onclick="window.location.href='mailto:dev@example.com'">
+    Attention. Les GRIBS sont générés automatiquement, sans vérifications. Le developpeur ne peut en aucun cas être tenu responsable de quelconque évènement lié à l'utilisation de ces gribs. L'utilisateur les utilise de son propre gré, à ses risques et périls, en toute connaissance de cause. <br><b>Je contacte le développeur</b>
+  </div>
+</div>
+
+
+<script>
+let allPoints = null;
+// ══════════════════════════════════════════════
+// VÉRIFICATION DE SESSION SUPABASE
+// ══════════════════════════════════════════════
+const supabaseClient = window.supabaseClient;
+
+async function checkAuth() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
+
+  if (error || !session) {
+    // Redirection vers la page de connexion si aucune session n'est active
+    window.location.href = 'https://yannkerherve.github.io/WeatherScore/login/index.html';
+    return;
+  }
+
+  // Masque l'overlay de chargement/connexion et charge les données marines
+  const overlay = document.getElementById('login-overlay');
+  if (overlay) overlay.style.display = 'none';
+  
+  loadMarineData();
+}
+
+window.addEventListener('load', checkAuth);
+
+// ══════════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════════
+const map = L.map('map', {
+  center: [30, 0], zoom: 3,
+  zoomControl: false, minZoom: 2, maxZoom: 12,
+  worldCopyJump: true,
+  preferCanvas: true
+});
+
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
+
+// Labels pane on top
+const labelsPane = map.createPane('labels');
+labelsPane.style.zIndex = 650;
+labelsPane.style.pointerEvents = 'none';
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+  attribution: '', subdomains: 'abcd', maxZoom: 19, pane: 'labels'
+}).addTo(map);
+
+// ══════════════════════════════════════════════
+// MODELS
+// ══════════════════════════════════════════════
+const ATMO = [
+  { id:'ecmwf',  name:'ECMWF',    sub:'IFS · 9 km' },
+  { id:'gfs',    name:'GFS',      sub:'NCEP · 13 km' },
+  { id:'arome',  name:'AROME',    sub:'Météo-France · 1.3 km' },
+  { id:'icon',   name:'ICON',     sub:'DWD · 13 km' },
+  { id:'arpege', name:'ARPEGE',   sub:'Météo-France · 10 km' },
+  { id:'navgem', name:'NAVGEM',   sub:'US Navy · 37 km' },
+  { id:'gem',    name:'GEM',      sub:'Env. Canada · 10 km' },
+  { id:'access', name:'ACCESS-G', sub:'BOM · 25 km' },
+];
+
+const OCEAN = [
+  { id:'glorys', name:'GLORYS',   sub:'Copernicus · 1/12°' },
+  { id:'hycom',  name:'HYCOM',    sub:'US Navy · 1/12°' },
+  { id:'nemo',   name:'NEMO',     sub:'Mercator · 1/12°' },
+  { id:'mom6',   name:'MOM6',     sub:'NOAA · 1/12°' },
+  { id:'topaz',  name:'TOPAZ4',   sub:'Arctic · 12 km' },
+];
+
+const WAVE = [
+  { id:'ecwam',  name:'ECWAM',   sub:'ECMWF · 28 km' },
+  { id:'ww3',    name:'WW3',     sub:'NOAA · 0.5°' },
+  { id:'mfwam',  name:'MFWAM',   sub:'Météo-France · 20 km' },
+  { id:'swan',   name:'SWAN',    sub:'TU Delft · côtier' },
+  { id:'wam',    name:'WAM',     sub:'DWD · 15 km' },
+];
+
+const MODEL_COLORS = {
+  'ECMWF':'#4a90d9','GFS':'#e07b39','AROME':'#b05bdd',
+  'ICON':'#27ae60','ARPEGE':'#e74c3c','NAVGEM':'#f39c12',
+  'GEM':'#1abc9c','ACCESS-G':'#e91e8c'
+};
+
+// Build legend (initial: par modèle)
+const li = document.getElementById('legend-items');
+Object.entries(MODEL_COLORS).forEach(([n,c]) => {
+  li.innerHTML += `<div class="li"><div class="ld" style="background:${c}"></div><span>${n}</span></div>`;
+});
+
+// ══════════════════════════════════════════════
+// PSEUDO-RANDOM SCORES
+// ══════════════════════════════════════════════
+function srand(lat, lon, mi, si) {
+  const v = Math.sin(lat*127.1 + lon*311.7 + mi*74.3 + si*19.1) * 43758.5453;
+  const r = v - Math.floor(v);
+  if (r < 0.12) return null;
+  return Math.round((r * 3.5 + 1.5) * 10) / 10;
+}
+
+function avg(scores) {
+  const v = scores.filter(s => s !== null);
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
+}
+
+function tier(v) {
+  if (v === null) return 0;
+  if (v >= 4.5) return 5; if (v >= 3.5) return 4;
+  if (v >= 2.5) return 3; if (v >= 1.5) return 2; return 1;
+}
+
+function scoreColor(v) {
+  if (v >= 4.5) return '#4ade80'; if (v >= 3.5) return '#86efac';
+  if (v >= 2.5) return '#fbbf24'; if (v >= 1.5) return '#f97316';
+  return '#f87171';
+}
+
+function cellH(v) {
+  if (v === null) return '<span class="nd">—</span>';
+  const t = tier(v), pct = (v/5*100).toFixed(0);
+  return `<div class="sc t${t}"><div class="sc-bar"><div class="sc-fill" style="width:${pct}%"></div></div><span class="sc-v">${v.toFixed(1)}</span></div>`;
+}
+
+function bestModel(models, nsrc, lat, lon) {
+  let best = { name:'', a:-1 };
+  models.forEach((m,mi) => {
+    const sc = Array.from({length:nsrc},(_,si)=>srand(lat,lon,mi,si));
+    const a = avg(sc);
+    if (a > best.a) best = { name:m.name, a };
+  });
+  return best.name;
+}
+
+function bestScore(models, nsrc, lat, lon) {
+  let best = -1;
+  models.forEach((m,mi) => {
+    const sc = Array.from({length:nsrc},(_,si)=>srand(lat,lon,mi,si));
+    const a = avg(sc);
+    if (a > best) best = a;
+  });
+  return best;
+}
+
+function buildTable(tbodyId, models, nsrc, lat, lon) {
+  const body = document.getElementById(tbodyId);
+  body.innerHTML = '';
+  const rows = models.map((m,mi) => {
+    const sc = Array.from({length:nsrc},(_,si)=>srand(lat,lon,mi,si));
+    return { m, sc, a: avg(sc) };
+  }).sort((a,b)=>b.a-a.a);
+
+  rows.forEach((row,ri) => {
+    const tr = document.createElement('tr');
+    if (ri===0) tr.classList.add('brow');
+    const cells = row.sc.map(v=>`<td>${cellH(v)}</td>`).join('');
+    const tag = ri===0 ? '<span class="btag">TOP</span>' : '';
+    tr.innerHTML = `
+      <td><div class="mn">${row.m.name}${tag}</div><div class="ms">${row.m.sub}</div></td>
+      ${cells}
+      <td class="tot" style="color:${scoreColor(row.a)}">${row.a.toFixed(2)}</td>`;
+    body.appendChild(tr);
+  });
+  return rows[0].m.name;
+}
+
+// ══════════════════════════════════════════════
+// LAND MASK (approximate bounding boxes)
+// ══════════════════════════════════════════════
+const LAND = [
+  [24,72,-140,-52],[14,25,-92,-70],[-55,12,-82,-34],
+  [36,72,-10,35],[35,40,35,42],[-35,38,-18,52],
+  [10,78,40,148],[-44,-10,113,155],[60,85,-55,-14],
+  [-90,-60,-180,180],[54,72,-172,-130],[-10,7,95,141],
+  [30,46,129,146],[-47,-34,166,178],[-26,-12,43,51],
+  [63,67,-25,-13],[5,20,116,127],[6,10,79,82],
+  [22,27,88,92],[51,59,-4,2],[51,60,-10,-6],
+  [56,72,4,32],[60,72,24,32],
+];
+
+function isOcean(lat, lon) {
+  while (lon > 180) lon -= 360;
+  while (lon < -180) lon += 360;
+  if (lat < -78 || lat > 80) return false;
+  for (const [la,lb,loa,lob] of LAND) {
+    if (lat>=la && lat<=lb && lon>=loa && lon<=lob) return false;
+  }
+  return true;
+}
+
+// ══════════════════════════════════════════════
+// POINTS RENDERING — grille sur vrais points du fichier
+// ══════════════════════════════════════════════
+async function loadMarineData() {
+  try {
+    const response = await fetch('points_mer.bin');
+    if (!response.ok) throw new Error("Fichier introuvable");
+    const buffer = await response.arrayBuffer();
+    allPoints = new Float32Array(buffer);
+    console.log("Succès : " + (allPoints.length / 2) + " points chargés.");
+    // Garder une copie avant transfert au worker
+    const copy = new Float32Array(allPoints);
+    buildIndex(); // transfère allPoints au worker
+    allPoints = copy; // restaurer pour le fallback zoom >= 8
+  } catch (err) {
+    console.error("Erreur de chargement : ", err);
+    alert("Impossible de charger les points. Vérifiez que vous utilisez un serveur local (localhost).");
+  }
+}
+
+const pointsLayer = L.layerGroup().addTo(map);
+const linesLayer  = L.layerGroup().addTo(map);
+let renderTimer   = null;
+let colorByScore  = false;
+let selectedMarker = null;
+let selectedLatLon = null;
+
+// ── Index spatial : une cellule de grille = un point (le plus proche du nœud)
+const gridCache = {};
+let indexReady = false;
+
+function buildIndex() {
+  if (!allPoints) return;
+
+  const workerCode = `
+    self.onmessage = function(e) {
+      const pts = e.data;
+      const steps = [0.1, 0.25, 0.5, 1.0, 2.25, 4.5, 9.0];
+      const result = {};
+      steps.forEach(step => {
+        // Une cellule = un seul représentant (le plus proche du nœud)
+        const cellMap = new Map();
+        for (let i = 0; i < pts.length; i += 2) {
+          const lat = pts[i], lon = pts[i+1];
+          const iLat = Math.round(lat / step);
+          const iLon = Math.round(lon / step);
+          const key  = iLat * 100000 + iLon; // hash entier, pas de string
+          if (!cellMap.has(key)) {
+            cellMap.set(key, i);
+          } else {
+            const pi = cellMap.get(key);
+            const dPrev = Math.abs(pts[pi]  - iLat*step) + Math.abs(pts[pi+1] - iLon*step);
+            const dCurr = Math.abs(lat      - iLat*step) + Math.abs(lon       - iLon*step);
+            if (dCurr < dPrev) cellMap.set(key, i);
+          }
+        }
+        const pairs = [];
+        cellMap.forEach(i => pairs.push([pts[i], pts[i+1]]));
+        pairs.sort((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
+        const arr = new Float32Array(pairs.length * 2);
+        pairs.forEach(([la, lo], k) => { arr[k*2]=la; arr[k*2+1]=lo; });
+        result[step] = arr;
+      });
+      self.postMessage(result, Object.values(result).map(a => a.buffer));
+    };
+  `;
+  const blob   = new Blob([workerCode], { type: 'application/javascript' });
+  const worker = new Worker(URL.createObjectURL(blob));
+  worker.postMessage(allPoints, [allPoints.buffer]);
+  worker.onmessage = function(e) {
+    Object.assign(gridCache, e.data);
+    indexReady = true;
+    console.log('Index prêt :', Object.entries(gridCache)
+      .map(([s,a]) => `${s}°:${a.length/2}pts`).join(' '));
+    worker.terminate();
+    renderPoints();
+  };
+}
+
+function gridDeg(zoom) {
+  if (zoom <= 2) return 9.0;
+  if (zoom <= 3) return 4.5;
+  if (zoom <= 4) return 2.25;
+  if (zoom <= 5) return 1.0;
+  if (zoom <= 6) return 0.5;
+  if (zoom <= 7) return 0.25;
+  return 0.1;
+}
+
+
+function markerR(zoom) {
+  if (zoom <= 3) return 2.5;
+  if (zoom <= 5) return 3.5;
+  if (zoom <= 7) return 4.5;
+  return 5.5;
+}
+
+function renderPoints() {
+  if (!allPoints || !indexReady) return;
+
+  pointsLayer.clearLayers();
+  linesLayer.clearLayers();
+  selectedMarker = null;
+
+  const zoom   = map.getZoom();
+  const bounds = map.getBounds();
+  const r      = markerR(zoom);
+  const step   = gridDeg(zoom);
+  const arr    = gridCache[step];
+
+  const myRenderer = L.canvas({ padding: 0.5 });
+  const zonePoints = {};
+  let count = 0;
+
+  const south = bounds.getSouth();
+  const north = bounds.getNorth();
+  const west  = bounds.getWest();
+  const east  = bounds.getEast();
+
+  if (arr) {
+    // Recherche binaire pour la borne inférieure de lat
+    let lo = 0, hi = arr.length / 2 - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid*2] < south) lo = mid + 1; else hi = mid;
+    }
+    for (let k = lo; k < arr.length / 2; k++) {
+      const lat = arr[k*2];
+      const lon = arr[k*2+1];
+      if (lat > north) break;                     // trié → on peut stopper
+      if (lon < west || lon > east) continue;
+      drawPoint(lat, lon, r, myRenderer, zonePoints, zoom);
+      count++;
+    }
+  } else {
+    // Zoom >= 8 : fallback sur tous les points dans la vue
+    for (let i = 0; i < allPoints.length; i += 2) {
+      const lat = allPoints[i];
+      const lon = allPoints[i + 1];
+      if (lat < south || lat > north || lon < west || lon > east) continue;
+      drawPoint(lat, lon, r, myRenderer, zonePoints, zoom);
+      count++;
+      if (count >= 3000) break;
+    }
+  }
+
+  if (zoom >= 4 && zoom <= 7 && !colorByScore) drawModelConnections(zonePoints);
+  document.getElementById('pt-info').textContent = count + ' pts';
+}
+
+function drawPoint(lat, lon, r, renderer, zonePoints, zoom) {
+  const bm = bestModel(ATMO, 7, lat, lon);
+  const color = colorByScore
+    ? scoreColor(bestScore(ATMO, 7, lat, lon))
+    : (MODEL_COLORS[bm] || '#4a90d9');
+
+  const m = L.circleMarker([lat, lon], {
+    radius: r, fillColor: color, fillOpacity: 0.82,
+    color: 'rgba(0,0,0,0.4)', weight: 0.4,
+    renderer, interactive: true
+  });
+  m.on('click', (e) => {
+    L.DomEvent.stopPropagation(e);
+    selectPoint(lat, lon, m, e.originalEvent);
+  });
+  pointsLayer.addLayer(m);
+
+  if (zoom >= 4 && zoom <= 7 && !colorByScore) {
+    if (!zonePoints[bm]) zonePoints[bm] = [];
+    if (zonePoints[bm].length < 100) zonePoints[bm].push([lat, lon]);
+  }
+}
+
+// ── Sélection d'un point ──
+function selectPoint(lat, lon, marker, mouseEvent) {
+  // Remettre l'ancien marqueur à la normale
+  if (selectedMarker) {
+    selectedMarker.setStyle({ color: 'rgba(0,0,0,0.4)', weight: 0.4, fillOpacity: 0.82 });
+  }
+  selectedMarker = marker;
+  selectedLatLon = [lat, lon];
+  // Mettre en surbrillance
+  marker.setStyle({ color: '#ffffff', weight: 2.5, fillOpacity: 1 });
+
+  // Étoile ancrée sur la position carte (pas sur la souris)
+  showStarPopup(lat, lon);
+
+  // Panneau
+  onPointClick(lat, lon);
+}
+
+// ── Connexions inter-points ──
+function drawModelConnections(zonePoints) {
+  Object.entries(zonePoints).forEach(([modelName, pts]) => {
+    if (pts.length < 3) return;
+    const color = MODEL_COLORS[modelName] || '#4a90d9';
+    for (let i = 0; i < pts.length; i++) {
+      let minD = Infinity, minJ = -1;
+      for (let j = 0; j < pts.length; j++) {
+        if (i === j) continue;
+        const d = Math.hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]);
+        if (d < minD && d < 6) { minD = d; minJ = j; }
+      }
+      if (minJ >= 0) {
+        linesLayer.addLayer(L.polyline([pts[i], pts[minJ]], {
+          color, weight: 1, opacity: 0.22, dashArray: '4 5', interactive: false
+        }));
+      }
+    }
+  });
+}
+
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(renderPoints, 200);
+}
+
+map.on('zoomend', () => { updateZoomLevel(); scheduleRender(); });
+map.on('moveend', scheduleRender);
+
+// ══════════════════════════════════════════════
+// STAR POPUP — branches vers vraies positions géo des capteurs
+// ══════════════════════════════════════════════
+
+// Types de capteurs avec leur icône et rayon de recherche max (degrés)
+const SENSOR_TYPES = [
+  { type: 'Synop',      icon: '🏠', maxR: 3.0  },
+  { type: 'Bateau',     icon: '⛵', maxR: 5.0  },
+  { type: 'Bouée',      icon: '🔵', maxR: 4.0  },
+  { type: 'ASCAT',      icon: '🛸', maxR: 6.0  },
+  { type: 'Radiosonde', icon: '🎈', maxR: 4.0  },
+  { type: 'Radar',      icon: '📻', maxR: 3.5  },
+  { type: 'Sat. IR',    icon: '🌡️', maxR: 7.0  },
+];
+
+// Génère des capteurs pseudo-aléatoires réalistes autour d'un point
+// En vrai : requête API/BDD avec les obs dans le rayon
+function getSensorsNear(lat, lon) {
+  const sensors = [];
+  const seed = (lat * 73.1 + lon * 41.7);
+
+  SENSOR_TYPES.forEach((st, ti) => {
+    // Nombre de capteurs de ce type présents (0 à N) — pseudo-aléatoire reproductible
+    const h1 = Math.sin(seed + ti * 17.3) * 43758.5453;
+    const r1 = h1 - Math.floor(h1);
+    // Bateaux peuvent être 0-4, synops 0-2, bouées 0-3, etc.
+    const maxCount = st.type === 'Bateau' ? 4 : st.type === 'Bouée' ? 3 : 2;
+    const count = r1 < 0.35 ? 0 : Math.floor(r1 * (maxCount + 1));
+
+    for (let k = 0; k < count; k++) {
+      // Position réelle du capteur (décalage en degrés depuis le point central)
+      const h2 = Math.sin(seed + ti * 29.1 + k * 53.7) * 43758.5453;
+      const h3 = Math.sin(seed + ti * 11.9 + k * 37.1) * 43758.5453;
+      const r2 = h2 - Math.floor(h2);
+      const r3 = h3 - Math.floor(h3);
+      const dLat = (r2 - 0.5) * 2 * st.maxR;
+      const dLon = (r3 - 0.5) * 2 * st.maxR;
+      sensors.push({
+        type: st.type, icon: st.icon,
+        lat: lat + dLat,
+        lon: lon + dLon,
+      });
+    }
+  });
+
+  return sensors;
+}
+
+let starAnimFrame = null;
+
+function showStarPopup(lat, lon) {
+  const popup = document.getElementById('star-popup');
+  popup.innerHTML = '';
+  popup.style.display = 'block';
+
+  const bm    = bestModel(ATMO, 7, lat, lon);
+  const color = MODEL_COLORS[bm] || '#4a90d9';
+
+  // Capteurs réels autour du point
+  const sensors = getSensorsNear(lat, lon);
+
+  function redraw() {
+    const center = map.latLngToContainerPoint([lat, lon]);
+    popup.style.left = center.x + 'px';
+    popup.style.top  = center.y + 'px';
+    popup.innerHTML = '';
+
+    if (sensors.length === 0) return;
+
+    // SVG pour toutes les lignes
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.style.cssText = 'position:absolute;overflow:visible;left:0;top:0;pointer-events:none;';
+    svg.setAttribute('width', '1'); svg.setAttribute('height', '1');
+
+    sensors.forEach((s) => {
+      // Convertir la position géo du capteur en pixels écran
+      const sp = map.latLngToContainerPoint([s.lat, s.lon]);
+      const ex = sp.x - center.x;
+      const ey = sp.y - center.y;
+
+      // Ligne du centre vers le capteur
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '0'); line.setAttribute('y1', '0');
+      line.setAttribute('x2', ex);  line.setAttribute('y2', ey);
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', '1.8');
+      line.setAttribute('stroke-opacity', '0.75');
+      svg.appendChild(line);
+
+      // Halo de la ligne (glow)
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      glow.setAttribute('x1', '0'); glow.setAttribute('y1', '0');
+      glow.setAttribute('x2', ex);  glow.setAttribute('y2', ey);
+      glow.setAttribute('stroke', color);
+      glow.setAttribute('stroke-width', '5');
+      glow.setAttribute('stroke-opacity', '0.12');
+      svg.insertBefore(glow, svg.firstChild);
+
+      // Nœud icône à la position réelle du capteur
+      const node = document.createElement('div');
+      node.style.cssText = `
+        position:absolute;
+        width:34px;height:34px;border-radius:50%;
+        background:rgba(14,22,34,0.95);
+        border:2px solid ${color};
+        display:flex;align-items:center;justify-content:center;
+        font-size:14px;
+        left:${ex}px;top:${ey}px;
+        transform:translate(-50%,-50%);
+        box-shadow:0 0 12px ${color}88, 0 0 4px ${color}44, inset 0 0 8px rgba(0,0,0,0.5);
+      `;
+      node.textContent = s.icon;
+      node.title = `${s.type} · ${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°`;
+      popup.appendChild(node);
+
+      // Label type (discret, sans score)
+      const lbl = document.createElement('div');
+      // Décaler le label dans la direction de la branche
+      const dist = Math.hypot(ex, ey);
+      const nx = dist > 0 ? ex / dist : 0;
+      const ny = dist > 0 ? ey / dist : 0;
+      const lx = ex + nx * 22;
+      const ly = ey + ny * 22;
+      lbl.style.cssText = `
+        position:absolute;
+        left:${lx}px;top:${ly}px;
+        transform:translate(-50%,-50%);
+        background:rgba(8,14,22,0.93);
+        border:1px solid ${color}66;border-radius:4px;
+        padding:2px 7px;
+        font-size:10px;color:#c0d8e8;white-space:nowrap;
+        letter-spacing:0.03em;
+        pointer-events:none;
+        box-shadow:0 2px 8px rgba(0,0,0,0.5);
+      `;
+      lbl.textContent = s.type;
+      popup.appendChild(lbl);
+    });
+
+    popup.appendChild(svg);
+  }
+
+  if (starAnimFrame) cancelAnimationFrame(starAnimFrame);
+  function loop() { redraw(); starAnimFrame = requestAnimationFrame(loop); }
+  loop();
+}
+
+function hideStarPopup() {
+  document.getElementById('star-popup').style.display = 'none';
+  if (starAnimFrame) { cancelAnimationFrame(starAnimFrame); starAnimFrame = null; }
+  if (selectedMarker) {
+    selectedMarker.setStyle({ color: 'rgba(0,0,0,0.4)', weight: 0.4, fillOpacity: 0.82 });
+    selectedMarker = null;
+  }
+  selectedLatLon = null;
+}
+
+// ══════════════════════════════════════════════
+// COLOR MODE
+// ══════════════════════════════════════════════
+function toggleColorMode(btn) {
+  colorByScore = !colorByScore;
+  btn.classList.toggle('active', colorByScore);
+  const legendTitle = document.getElementById('legend-title');
+  const legendItems = document.getElementById('legend-items');
+  if (colorByScore) {
+    legendTitle.textContent = 'Score du meilleur modèle';
+    legendItems.innerHTML = `
+      <div class="li"><div class="ld" style="background:#4ade80"></div><span>≥ 4.5 Excellent</span></div>
+      <div class="li"><div class="ld" style="background:#86efac"></div><span>≥ 3.5 Bon</span></div>
+      <div class="li"><div class="ld" style="background:#fbbf24"></div><span>≥ 2.5 Moyen</span></div>
+      <div class="li"><div class="ld" style="background:#f97316"></div><span>≥ 1.5 Faible</span></div>
+      <div class="li"><div class="ld" style="background:#f87171"></div><span>&lt; 1.5 Mauvais</span></div>`;
+  } else {
+    legendTitle.textContent = 'Meilleur modèle atmo.';
+    legendItems.innerHTML = '';
+    Object.entries(MODEL_COLORS).forEach(([n,c]) => {
+      legendItems.innerHTML += `<div class="li"><div class="ld" style="background:${c}"></div><span>${n}</span></div>`;
+    });
+  }
+  renderPoints();
+}
+
+// ══════════════════════════════════════════════
+// ZONES
+// ══════════════════════════════════════════════
+const ZONES = [
+  ['Atlantique NE', 'ECMWF',    [[35,-40],[65,-40],[65,10],[35,10]]],
+  ['Atlantique NO', 'GFS',      [[25,-100],[55,-100],[55,-50],[25,-50]]],
+  ['Europe côtier', 'AROME',   [[42,-5],[50,-5],[50,10],[42,10]]],
+  ['Mer du Nord',   'ICON',    [[50,2],[62,2],[62,12],[50,12]]],
+  ['Pac. NO',       'GFS',     [[20,140],[50,140],[50,180],[20,180]]],
+  ['Pac. NE',       'GFS',     [[20,-180],[50,-180],[50,-120],[20,-120]]],
+  ['Atlantique S',  'ECMWF',   [[-50,-60],[-15,-60],[-15,-10],[-50,-10]]],
+  ['Océan Indien',  'NAVGEM',  [[0,50],[25,50],[25,100],[0,100]]],
+  ['Canada arc.',   'GEM',     [[60,-140],[75,-140],[75,-60],[60,-60]]],
+  ['Australie',     'ACCESS-G',[[-45,110],[-10,110],[-10,160],[-45,160]]],
+  ['Mer Arabe',     'ARPEGE',  [[5,55],[25,55],[25,75],[5,75]]],
+];
+
+const zonesLayer = L.layerGroup();
+let zonesVisible = false;
+
+ZONES.forEach(([zname, mname, coords]) => {
+  const color = MODEL_COLORS[mname] || '#4a90d9';
+  const poly = L.polygon(coords, {
+    fillColor: color, fillOpacity: .1,
+    color: color, weight: 1.5, dashArray: '5 4',
+    interactive: false,
+  });
+  poly.bindTooltip(`${mname} · ${zname}`, {
+    permanent: true, direction: 'center',
+    className: 'zt', opacity: 1,
+  });
+  zonesLayer.addLayer(poly);
+});
+
+function toggleZones(btn) {
+  zonesVisible = !zonesVisible;
+  btn.classList.toggle('active', zonesVisible);
+  if (zonesVisible) zonesLayer.addTo(map);
+  else map.removeLayer(zonesLayer);
+}
+
+// ══════════════════════════════════════════════
+// PANEL
+// ══════════════════════════════════════════════
+function zoneName(lat, lon) {
+  if (lat > 66) return 'Cercle Arctique';
+  if (lat < -60) return 'Océan Austral';
+  if (lon > -15 && lon < 42 && lat > 30 && lat < 47) return 'Méditerranée';
+  if (lon > -14 && lon < 42 && lat > 47 && lat < 65) return 'Mer du Nord / Baltique';
+  if (lon > -80 && lon < -10 && lat > 0)  return 'Atlantique Nord';
+  if (lon > -80 && lon < -10 && lat <= 0) return 'Atlantique Sud';
+  if (lon > -80 && lon < -10 && lat > 55) return 'Mer du Labrador';
+  if (lon > 40  && lon < 100 && lat > -40 && lat < 30) return 'Océan Indien';
+  if (lon > 100 && lat > 0)  return 'Pacifique Nord-Ouest';
+  if (lon < -120 && lat > 0) return 'Pacifique Nord-Est';
+  if (lon < -70  && lat < 0) return 'Pacifique Sud-Est';
+  if (lon > 100  && lat < 0) return 'Pacifique Sud-Ouest';
+  if (lon > 50 && lon < 80 && lat > 5 && lat < 25) return "Mer d'Arabie";
+  if (lon > 80 && lon < 100 && lat > 5 && lat < 22) return 'Golfe du Bengale';
+  return 'Haute mer';
+}
+
+function onPointClick(lat, lon) {
+  const latS = Math.abs(lat).toFixed(3)+'° '+(lat>=0?'N':'S');
+  const lonS = Math.abs(lon).toFixed(3)+'° '+(lon>=0?'E':'O');
+  document.getElementById('pc').textContent = latS+' — '+lonS;
+  document.getElementById('pz').textContent = zoneName(lat,lon);
+
+  const ba = buildTable('tb-atmo',  ATMO,  7, lat, lon);
+  buildTable('tb-ocean', OCEAN, 6, lat, lon);
+  buildTable('tb-vague', WAVE,  5, lat, lon);
+  document.getElementById('pb').textContent = '▲ '+ba;
+
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  hideStarPopup();
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tc').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// Clic sur la carte (fond) : fermer panneau + étoile
+map.on('click', () => { closePanel(); });
+
+// ══════════════════════════════════════════════
+// UPDATE TIMESTAMP
+// ══════════════════════════════════════════════
+let lastUpdate = new Date();
+function fmtAge() {
+  const s = Math.round((new Date()-lastUpdate)/1000);
+  if (s < 60) return `il y a ${s}s`;
+  if (s < 3600) return `il y a ${Math.floor(s/60)}min`;
+  return `il y a ${Math.floor(s/3600)}h`;
+}
+setInterval(()=>{ document.getElementById('last-update').textContent = fmtAge(); }, 5000);
+document.getElementById('last-update').textContent = fmtAge();
+
+function reloadData() {
+  lastUpdate = new Date();
+  document.getElementById('last-update').textContent = fmtAge();
+  renderPoints();
+  const btn = document.getElementById('btn-reload');
+  btn.classList.add('ok');
+  setTimeout(()=>btn.classList.remove('ok'), 1200);
+}
+
+// ══════════════════════════════════════════════
+// INITIAL RENDER
+// ══════════════════════════════════════════════
+renderPoints();
+
+// ══════════════════════════════════════════════
+// SIDE MENU NAVIGATION
+// ══════════════════════════════════════════════
+function toggleMenu() {
+  const menu    = document.getElementById('side-menu');
+  const overlay = document.getElementById('menu-overlay');
+  menu.classList.toggle('open');
+  overlay.classList.toggle('active');
+}
+
+function updateZoomLevel() {
+  const zoomEl = document.getElementById('zoom-level');
+  if (zoomEl) zoomEl.textContent = 'z' + map.getZoom();
+}
+updateZoomLevel();
+
+// ══════════════════════════════════════════════
+// EXPORT SYSTEM
+// ══════════════════════════════════════════════
+function toggleExport(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('export-popup').classList.toggle('open');
+  document.getElementById('btn-export').classList.toggle('active');
+}
+function closeExport() {
+  document.getElementById('export-popup').classList.remove('open');
+  document.getElementById('btn-export').classList.remove('active');
+}
+
+function toggleGribExport(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('gribcorrected-popup').classList.toggle('open');
+  document.getElementById('btn-grib').classList.toggle('active');
+}
+function closegribExport() {
+  document.getElementById('gribcorrected-popup').classList.remove('open');
+  document.getElementById('btn-grib').classList.remove('active');
+}
+
+
+map.on('mousedown', () => { closeExport(); });
+
+// loadMarineData est appelé après login
+
+</script>
+</body>
+</html>
