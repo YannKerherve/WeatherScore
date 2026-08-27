@@ -1,0 +1,392 @@
+
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Documentation API — WeatherScore</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="icon" type="image/x-icon" href="facion.png">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:wght@300;400;500&family=DM+Sans:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+/* ─── BASE & COULEURS (Identique à company.html) ─── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --ink: #050810;
+  --signal: #00d4ff;
+  --signal2: #0066ff;
+  --border: rgba(255, 255, 255, 0.08);
+  --text-dim: rgba(255, 255, 255, 0.5);
+  --font-sans: 'DM Sans', sans-serif;
+  --font-mono: 'DM Mono', monospace;
+}
+
+body {
+  background-color: var(--ink);
+  color: #ffffff;
+  font-family: var(--font-sans);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ─── LAYOUT & PANELS ─── */
+.container {
+  max-w: 1100px;
+  margin: 0 auto;
+  padding: 40px 20px;
+}
+
+header {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 40px;
+  margin-bottom: 40px;
+  align-items: center;
+}
+
+.brand {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--signal);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+h1 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 56px;
+  letter-spacing: 1px;
+  line-height: 1;
+}
+
+h1 span { color: var(--signal); }
+
+.subtitle {
+  color: var(--text-dim);
+  font-size: 14px;
+  max-w: 600px;
+  margin-top: 15px;
+  font-weight: 300;
+}
+
+.btn-back {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+.btn-back:hover { border-color: var(--signal); }
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 40px;
+}
+@media (min-width: 850px) {
+  .grid { grid-template-columns: 320px 1fr; }
+}
+
+.sidebar { display: flex; flex-direction: column; gap: 30px; }
+
+/* ─── BLOCS TECHNIQUE ─── */
+.panel {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 25px;
+  background: rgba(255,255,255,0.01);
+}
+
+.panel-title {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 24px;
+  letter-spacing: 1px;
+  margin-bottom: 15px;
+}
+
+.meta-label {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--text-dim);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+
+.code-box {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  background: rgba(0, 0, 0, 0.4);
+  border: 1px solid var(--border);
+  padding: 12px;
+  border-radius: 4px;
+  word-break: break-all;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.code-box code { color: #00ff88; }
+.code-box.url code { color: #ffffff; }
+
+.btn-copy {
+  background: none;
+  border: none;
+  color: var(--signal);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  cursor: pointer;
+  margin-left: 15px;
+}
+.btn-copy:hover { text-decoration: underline; }
+
+/* ─── TABLEAU COMPACT ─── */
+section { margin-bottom: 45px; }
+section h2 {
+  font-family: 'Bebas Neue', sans-serif;
+  font-size: 28px;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  margin-top: 15px;
+}
+
+th {
+  color: var(--text-dim);
+  text-transform: uppercase;
+  font-size: 10px;
+  padding: 12px;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+td {
+  padding: 14px 12px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.param-name { color: var(--signal); font-weight: 500; }
+.param-type { color: #ff6b35; }
+
+/* ─── SUB-GRID TYPES ─── */
+.sub-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 20px;
+}
+@media (min-width: 650px) {
+  .sub-grid { grid-template-columns: 1fr 1fr; }
+}
+
+.type-item {
+  background: rgba(255,255,255,0.01);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 15px;
+}
+
+.type-header {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--signal);
+  margin-bottom: 5px;
+  display: flex;
+  justify-content: space-between;
+  
+}
+.type-header.text-mode { color: #00ff88; }
+
+.type-desc {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-weight: 300;
+}
+
+.btn-back {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  text-transform: uppercase;
+  color: #ffffff;
+  text-decoration: none;
+  padding: 10px 20px;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  transition: border-color 0.2s;
+}
+.btn-back:hover { border-color: var(--signal); }
+
+pre {
+  background: rgba(0,0,0,0.4);
+  border: 1px solid var(--border);
+  padding: 15px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #00ff88;
+  overflow-x: auto;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+
+  <header>
+    <div>
+      <center><div class="brand">DATA INTEGRATION SYSTEM</div></center>
+      <center><h1>Documentation <span>API Engine</span></h1></center>
+      <center><div class="subtitle">Spécifications techniques d'interconnexion au serveur de WeatherScore pour l'automatisation des flux de données.</div></center>
+    </div>
+  </header>
+
+  <div class="grid">
+    
+    <div class="sidebar">
+      <a href="welcome.html" class="btn-back"><img src="Av.png" width="10"> Account</a>
+      <div class="panel">
+        <div class="meta-label">Accès Sécurisé</div>
+        <div class="panel-title">Clé API Personnelle</div>
+        <div class="code-box">
+          <code id="key-field">ws_live_4f8a92b3c7e10a9f</code>
+          <button class="btn-copy" onclick="navigator.clipboard.writeText(document.getElementById('key-field').innerText); alert('Clé copiée !')">Copy</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <div class="meta-label">Local Endpoint</div>
+        <div class="panel-title">Hôte d'écoute</div>
+        <div class="code-box url">
+          <code style="color: #fff">https://localhost:8080/api/</code>
+        </div>
+      </div>
+
+    </div>
+
+    <div class="main-doc">
+      
+      <section>
+        <h2>1. Structure de la requête URL</h2>
+        <div class="code-box url" style="padding: 16px; background: rgba(255,255,255,0.02)">
+          <code>https://localhost:8080/api/?type=<span style="color:var(--signal)">multicorrected</span>&amp;phiNE=&amp;gNE=&amp;phiSW=&amp;gSW=&amp;apikey=<span style="color:#ff6b35">ws_live_...</span></code>
+        </div>
+      </section>
+
+      <section>
+        <h2>2. Paramètres de la chaîne d'appel</h2>
+        <table>
+          <thead>
+            <tr>
+              <th style="width: 20%">Variable</th>
+              <th>Rôle / Description</th>
+              <th style="width: 25%">Format Attendu</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <td class="param-name">phiNE</td>
+              <td>Latitude du point supérieur gauche (Nord-Est).</td>
+              <td class="param-type">Float / Decimal</td>
+            </tr>
+            <tr>
+              <td class="param-name">gNE</td>
+              <td>Longitude du point supérieur gauche (Nord-Est).</td>
+              <td class="param-type">Float / Decimal</td>
+            </tr>
+            <tr>
+              <td class="param-name">phiSW</td>
+              <td>Latitude du point inférieur droit (Sud-Ouest).</td>
+              <td class="param-type">Float / Decimal</td>
+            </tr>
+            <tr>
+              <td class="param-name">gSW</td>
+              <td>Longitude du point inférieur droit (Sud-Ouest).</td>
+              <td class="param-type">Float / Decimal</td>
+            </tr>
+            <tr>
+              <td class="param-name" style="color: #a855f7">zone</td>
+              <td>Identifiant de zone géographique unique (Requis si type=modeltouse).</td>
+              <td class="param-type" style="color: #a855f7">String (Chaîne)</td>
+            </tr>
+            <tr>
+              <td class="param-name" style="color: #a855f7">position</td>
+              <td>Coordonnées GPS instantanées du navire (Requis si type=modelinmyposition).</td>
+              <td class="param-type" style="color: #a855f7">String (GPS)</td>
+            </tr>
+            <tr>
+              <td class="param-name" style="color: #ff6b35">apikey</td>
+              <td>Clé d'authentification obligatoire liée à votre compte.</td>
+              <td class="param-type" style="color: #ff6b35">String (Token)</td>
+            </tr>
+          </tbody>
+        </table>
+      </section>
+
+      <section>
+        <h2>3. Valeurs de traitement acceptées (Paramètre type)</h2>
+        
+        <div class="sub-grid">
+          <div>
+            <div class="meta-label" style="margin-bottom: 12px">Flux Fichiers GRIB (Binaire)</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="type-item">
+                <div class="type-header">type=multicorrected</div>
+                <div class="type-desc">Télécharge le GRIB multimodèle après traitement et corrections algorithmiques.</div>
+              </div>
+              <div class="type-item">
+                <div class="type-header">type=multinotcorrected</div>
+                <div class="type-desc">Télécharge les modèles bruts cumulés sans filtres de correction mathématique.</div>
+              </div>
+              <div class="type-item">
+                <div class="type-header">type=monomodelcorrected</div>
+                <div class="type-desc">Télécharge le fichier du modèle dominant unique, ajusté selon ses erreurs quadratiques.</div>
+              </div>
+            </div>
+          </div>
+
+          <div>
+            <div class="meta-label" style="margin-bottom: 12px">Flux Indicateurs (Texte Brut)</div>
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+              <div class="type-item">
+                <div class="type-header text-mode">type=modeltouse <span style="color: #a855f7; font-size: 10px;">+ zone</span></div>
+                <div class="type-desc">Renvoie sous forme textuelle le modèle numérique recommandé pour la zone sélectionnée.</div>
+              </div>
+              <div class="type-item">
+                <div class="type-header text-mode">type=modelinmyposition <span style="color: #a855f7; font-size: 10px;">+ position</span></div>
+                <div class="type-desc">Renvoie l'indice de performance textuel directement extrait à la position GPS de votre navire.</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section>
+        <h2>4. Exemples d'implémentation shell (cURL)</h2>
+        <div class="meta-label">Téléchargement GRIB</div>
+        <pre>curl -X GET "https://localhost:8080/api/?type=multicorrected&amp;phiNE=49.5&amp;gNE=-0.1&amp;phiSW=49.1&amp;gSW=0.5&amp;apikey=ws_live_4f8a92b3c7e10a9f" -o marine_data.grib</pre>
+        
+        <div class="meta-label" style="margin-top: 15px;">Requête texte (Modèle sur zone)</div>
+        <pre style="color: #a855f7;">curl -X GET "https://localhost:8080/api/?type=modeltouse&amp;zone=manche_centrale&amp;apikey=ws_live_4f8a92b3c7e10a9f"</pre>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<footer style="padding: 40px; text-align: center; border-top: 1px solid var(--border); font-family: var(--font-mono); font-size: 11px; color: var(--text-dim); margin-top: 60px;">
+  © 2026 WeatherScore — ENSM Le Havre — Core API Documentation System.
+</footer>
+
+</body>
+</html>
