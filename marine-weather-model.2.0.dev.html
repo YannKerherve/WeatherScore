@@ -546,7 +546,23 @@ td:first-child { text-align: left; padding-left: 14px; }
     </svg>
     Recharger
   </button>
+  
+<button class="bar-btn" id="btn-import" onclick="document.getElementById('points-file-input').click()">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M7 10V2"/>
+    <path d="M4 5L7 2L10 5"/>
+    <path d="M2 12H12"/>
+  </svg>
+  Importer points
+</button>
 
+<input
+  type="file"
+  id="points-file-input"
+  accept=".bin"
+  style="display:none"
+  onchange="importPointsFile(this)"
+>
 <div class="bar-sep"></div>
 
   <button class="bar-btn" id="btn-export" onclick="toggleExport(event)">
@@ -819,20 +835,124 @@ function isOcean(lat, lon) {
 async function loadMarineData() {
   try {
     const response = await fetch('points_mer.bin');
-    if (!response.ok) throw new Error("Fichier introuvable");
+
+    if (!response.ok) {
+      throw new Error("Fichier introuvable");
+    }
+
     const buffer = await response.arrayBuffer();
+
     allPoints = new Float32Array(buffer);
-    console.log("Succès : " + (allPoints.length / 2) + " points chargés.");
-    // Garder une copie avant transfert au worker
-    const copy = new Float32Array(allPoints);
-    buildIndex(); // transfère allPoints au worker
-    allPoints = copy; // restaurer pour le fallback zoom >= 8
+
+    console.log(
+      "Succès : " +
+      (allPoints.length / 2).toLocaleString() +
+      " points chargés."
+    );
+
+    buildIndex();
+
   } catch (err) {
     console.error("Erreur de chargement : ", err);
-    alert("Impossible de charger les points. Vérifiez que vous utilisez un serveur local (localhost).");
+
+    alert(
+      "Impossible de charger les points.\n\n" +
+      err.message
+    );
   }
 }
 
+async function importPointsFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+
+  try {
+    console.log("Import du fichier :", file.name);
+    console.log("Taille :", file.size, "octets");
+
+    // Lire le fichier
+    const buffer = await file.arrayBuffer();
+
+    // Vérifier que la taille est compatible avec des Float32
+    if (buffer.byteLength % 4 !== 0) {
+      throw new Error("Le fichier n'est pas compatible avec un tableau Float32.");
+    }
+
+    const newPoints = new Float32Array(buffer);
+
+    // Vérification simple
+    if (newPoints.length < 2) {
+      throw new Error("Le fichier ne contient pas suffisamment de données.");
+    }
+
+    if (newPoints.length % 2 !== 0) {
+      throw new Error("Le nombre de valeurs doit être pair (lat/lon).");
+    }
+
+    // Vérifier quelques coordonnées
+    for (let i = 0; i < Math.min(newPoints.length, 100); i += 2) {
+      const lat = newPoints[i];
+      const lon = newPoints[i + 1];
+
+      if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon) ||
+        lat < -90 || lat > 90 ||
+        lon < -180 || lon > 180
+      ) {
+        throw new Error(
+          `Coordonnées invalides détectées : ${lat}, ${lon}`
+        );
+      }
+    }
+
+    // Remplacer les points actuels
+    allPoints = newPoints;
+
+    // Réinitialiser l'index
+    indexReady = false;
+
+    // Vider l'ancien cache
+    Object.keys(gridCache).forEach(k => delete gridCache[k]);
+
+    // Reconstruire l'index
+    buildIndex();
+
+    // Informations utilisateur
+    const count = allPoints.length / 2;
+
+    console.log(
+      `Import réussi : ${count.toLocaleString()} points`
+    );
+
+    // Bouton visuellement validé
+    const btn = document.getElementById('btn-import');
+    btn.classList.add('ok');
+
+    // Afficher le nombre de points
+    document.getElementById('pt-info').textContent =
+      count.toLocaleString() + ' pts';
+
+    setTimeout(() => {
+      btn.classList.remove('ok');
+    }, 1500);
+
+  } catch (err) {
+    console.error("Erreur lors de l'import :", err);
+
+    alert(
+      "Impossible d'importer ce fichier.\n\n" +
+      err.message +
+      "\n\nLe fichier doit être un .bin contenant des coordonnées Float32 :\n" +
+      "latitude, longitude, latitude, longitude..."
+    );
+  }
+
+  // Permet de réimporter le même fichier ensuite
+  input.value = '';
+}
+
+  
 const pointsLayer = L.layerGroup().addTo(map);
 const linesLayer  = L.layerGroup().addTo(map);
 let renderTimer   = null;
@@ -852,46 +972,103 @@ function buildIndex() {
       const pts = e.data;
       const steps = [0.1, 0.25, 0.5, 1.0, 2.25, 4.5, 9.0];
       const result = {};
+
       steps.forEach(step => {
-        // Une cellule = un seul représentant (le plus proche du nœud)
         const cellMap = new Map();
+
         for (let i = 0; i < pts.length; i += 2) {
-          const lat = pts[i], lon = pts[i+1];
+          const lat = pts[i];
+          const lon = pts[i + 1];
+
           const iLat = Math.round(lat / step);
           const iLon = Math.round(lon / step);
-          const key  = iLat * 100000 + iLon; // hash entier, pas de string
+
+          const key = iLat * 100000 + iLon;
+
           if (!cellMap.has(key)) {
             cellMap.set(key, i);
           } else {
             const pi = cellMap.get(key);
-            const dPrev = Math.abs(pts[pi]  - iLat*step) + Math.abs(pts[pi+1] - iLon*step);
-            const dCurr = Math.abs(lat      - iLat*step) + Math.abs(lon       - iLon*step);
-            if (dCurr < dPrev) cellMap.set(key, i);
+
+            const dPrev =
+              Math.abs(pts[pi] - iLat * step) +
+              Math.abs(pts[pi + 1] - iLon * step);
+
+            const dCurr =
+              Math.abs(lat - iLat * step) +
+              Math.abs(lon - iLon * step);
+
+            if (dCurr < dPrev) {
+              cellMap.set(key, i);
+            }
           }
         }
+
         const pairs = [];
-        cellMap.forEach(i => pairs.push([pts[i], pts[i+1]]));
-        pairs.sort((a, b) => a[0] !== b[0] ? a[0] - b[0] : a[1] - b[1]);
+
+        cellMap.forEach(i => {
+          pairs.push([pts[i], pts[i + 1]]);
+        });
+
+        pairs.sort((a, b) =>
+          a[0] !== b[0]
+            ? a[0] - b[0]
+            : a[1] - b[1]
+        );
+
         const arr = new Float32Array(pairs.length * 2);
-        pairs.forEach(([la, lo], k) => { arr[k*2]=la; arr[k*2+1]=lo; });
+
+        pairs.forEach(([la, lo], k) => {
+          arr[k * 2] = la;
+          arr[k * 2 + 1] = lo;
+        });
+
         result[step] = arr;
       });
-      self.postMessage(result, Object.values(result).map(a => a.buffer));
+
+      self.postMessage(
+        result,
+        Object.values(result).map(a => a.buffer)
+      );
     };
   `;
-  const blob   = new Blob([workerCode], { type: 'application/javascript' });
-  const worker = new Worker(URL.createObjectURL(blob));
-  worker.postMessage(allPoints, [allPoints.buffer]);
+
+  const blob = new Blob(
+    [workerCode],
+    { type: 'application/javascript' }
+  );
+
+  const worker = new Worker(
+    URL.createObjectURL(blob)
+  );
+
+  // IMPORTANT :
+  // on envoie une copie au worker afin de conserver
+  // allPoints disponible dans la page
+  const workerPoints = new Float32Array(allPoints);
+
+  worker.postMessage(
+    workerPoints,
+    [workerPoints.buffer]
+  );
+
   worker.onmessage = function(e) {
     Object.assign(gridCache, e.data);
+
     indexReady = true;
-    console.log('Index prêt :', Object.entries(gridCache)
-      .map(([s,a]) => `${s}°:${a.length/2}pts`).join(' '));
+
+    console.log(
+      'Index prêt :',
+      Object.entries(gridCache)
+        .map(([s, a]) => `${s}°:${a.length / 2}pts`)
+        .join(' ')
+    );
+
     worker.terminate();
+
     renderPoints();
   };
 }
-
 function gridDeg(zoom) {
   if (zoom <= 2) return 9.0;
   if (zoom <= 3) return 4.5;
