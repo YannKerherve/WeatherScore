@@ -659,7 +659,7 @@ const map = L.map('map', {
   preferCanvas: true
 });
 
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
   attribution: '© OpenStreetMap contributors © CARTO',
   subdomains: 'abcd', maxZoom: 19
 }).addTo(map);
@@ -668,7 +668,7 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png'
 const labelsPane = map.createPane('labels');
 labelsPane.style.zIndex = 650;
 labelsPane.style.pointerEvents = 'none';
-L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png', {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
   attribution: '', subdomains: 'abcd', maxZoom: 19, pane: 'labels'
 }).addTo(map);
 
