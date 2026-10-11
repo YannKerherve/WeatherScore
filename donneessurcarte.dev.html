@@ -1,3434 +1,1852 @@
+
 <!DOCTYPE html>
 <html lang="fr">
-
 <head>
-
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <link rel="icon" type="image/png" href="facion.png">
-
-    <title>DatExpl WeatherScore</title>
-
-    <!-- Leaflet -->
-    <link
-        rel="stylesheet"
-        href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"
-    >
-
-    <!-- PapaParse : lecture robuste des CSV -->
-    <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
-
-
-    <style>
-
-        * {
-            box-sizing: border-box;
-        }
-
-        html,
-        body {
-
-            margin: 0;
-
-            width: 100%;
-            height: 100%;
-
-            font-family:
-                Inter,
-                -apple-system,
-                BlinkMacSystemFont,
-                "Segoe UI",
-                Arial,
-                sans-serif;
-
-            background: #f4f5f7;
-
-            color: #1f2937;
-
-            overflow: hidden;
-        }
-
-
-        /* =========================================================
-           APPLICATION
-        ========================================================= */
-
-        .app {
-
-            display: flex;
-
-            width: 100%;
-            height: 100vh;
-        }
-
-
-        /* =========================================================
-           MAP
-        ========================================================= */
-
-        .map-container {
-
-            position: relative;
-
-            flex: 1;
-
-            min-width: 0;
-
-            height: 100%;
-        }
-
-
-        #map {
-
-            width: 100%;
-            height: 100%;
-        }
-
-
-        /* =========================================================
-           MAP STATUS
-        ========================================================= */
-
-        .map-status {
-
-            position: absolute;
-
-            top: 18px;
-            left: 18px;
-
-            z-index: 1000;
-
-            padding: 9px 13px;
-
-            background:
-                rgba(255, 255, 255, 0.95);
-
-            border:
-                1px solid #e5e7eb;
-
-            border-radius: 8px;
-
-            font-size: 12px;
-
-            color: #6b7280;
-
-            box-shadow:
-                0 3px 14px rgba(0, 0, 0, 0.08);
-        }
-
-
-        /* =========================================================
-           SIDEBAR
-        ========================================================= */
-
-        .sidebar {
-
-            width: 390px;
-
-            height: 100%;
-
-            background: #ffffff;
-
-            border-left:
-                1px solid #e5e7eb;
-
-            display: flex;
-
-            flex-direction: column;
-
-            overflow-y: auto;
-        }
-
-
-        /* =========================================================
-           HEADER
-        ========================================================= */
-
-        .sidebar-header {
-
-            padding:
-                24px 22px 20px;
-
-            border-bottom:
-                1px solid #e5e7eb;
-        }
-
-
-        .sidebar-header h1 {
-
-            margin: 0;
-
-            font-size: 19px;
-
-            font-weight: 650;
-
-            letter-spacing: -0.02em;
-
-            color: #111827;
-        }
-
-
-        .sidebar-header p {
-
-            margin:
-                6px 0 12px;
-
-            font-size: 12px;
-
-            line-height: 1.5;
-
-            color: #6b7280;
-        }
-
-
-        .back-link {
-
-            font-size: 11px;
-
-            color: #6b7280;
-
-            text-decoration: none;
-        }
-
-
-        .back-link:hover {
-
-            color: #2563eb;
-        }
-
-
-        /* =========================================================
-           SECTIONS
-        ========================================================= */
-
-        .section {
-
-            padding:
-                20px 22px;
-
-            border-bottom:
-                1px solid #eef0f2;
-        }
-
-
-        .section-title {
-
-            margin-bottom: 12px;
-
-            font-size: 11px;
-
-            font-weight: 700;
-
-            text-transform: uppercase;
-
-            letter-spacing: 0.08em;
-
-            color: #6b7280;
-        }
-
-
-        /* =========================================================
-           FILE IMPORT
-        ========================================================= */
-
-        .file-drop {
-
-            display: block;
-
-            width: 100%;
-
-            padding: 18px;
-
-            border:
-                1px dashed #cfd4da;
-
-            border-radius: 9px;
-
-            background: #fafafa;
-
-            text-align: center;
-
-            cursor: pointer;
-
-            transition:
-                border-color 0.15s ease,
-                background 0.15s ease;
-        }
-
-
-        .file-drop:hover {
-
-            border-color: #9ca3af;
-
-            background: #f7f7f8;
-        }
-
-
-        .file-drop strong {
-
-            display: block;
-
-            font-size: 13px;
-
-            font-weight: 600;
-
-            color: #374151;
-        }
-
-
-        .file-drop span {
-
-            display: block;
-
-            margin-top: 5px;
-
-            font-size: 11px;
-
-            color: #9ca3af;
-        }
-
-
-        #fileInput {
-
-            display: none;
-        }
-
-
-        .file-info {
-
-            display: none;
-
-            margin-top: 10px;
-
-            padding: 10px;
-
-            border-radius: 7px;
-
-            background: #f3f4f6;
-
-            font-size: 11px;
-
-            line-height: 1.5;
-
-            color: #4b5563;
-        }
-
-
-        /* =========================================================
-           RAYON
-        ========================================================= */
-
-        .radius-value {
-
-            display: flex;
-
-            align-items: baseline;
-
-            gap: 5px;
-
-            margin-bottom: 12px;
-        }
-
-
-        .radius-number {
-
-            font-size: 25px;
-
-            font-weight: 650;
-
-            letter-spacing: -0.03em;
-
-            color: #111827;
-        }
-
-
-        .radius-unit {
-
-            font-size: 12px;
-
-            color: #6b7280;
-        }
-
-
-        input[type="range"] {
-
-            width: 100%;
-
-            accent-color: #2563eb;
-
-            cursor: pointer;
-        }
-
-
-        .range-labels {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            margin-top: 5px;
-
-            font-size: 10px;
-
-            color: #9ca3af;
-        }
-
-
-        /* =========================================================
-           POSITION
-        ========================================================= */
-
-        .position-box {
-
-            padding: 12px;
-
-            border-radius: 8px;
-
-            background: #f8fafc;
-
-            border:
-                1px solid #e5e7eb;
-        }
-
-
-        .position-row {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            margin-bottom: 6px;
-        }
-
-
-        .position-row:last-child {
-
-            margin-bottom: 0;
-        }
-
-
-        .position-label {
-
-            font-size: 11px;
-
-            color: #9ca3af;
-        }
-
-
-        .position-value {
-
-            font-size: 11px;
-
-            font-family: monospace;
-
-            color: #374151;
-        }
-
-
-        /* =========================================================
-           SUMMARY
-        ========================================================= */
-
-        .data-summary {
-
-            display: grid;
-
-            grid-template-columns:
-                1fr 1fr;
-
-            gap: 8px;
-        }
-
-
-        .stat {
-
-            padding: 12px;
-
-            border:
-                1px solid #e5e7eb;
-
-            border-radius: 8px;
-
-            background: #ffffff;
-        }
-
-
-        .stat-label {
-
-            font-size: 10px;
-
-            color: #9ca3af;
-        }
-
-
-        .stat-value {
-
-            margin-top: 4px;
-
-            font-size: 17px;
-
-            font-weight: 650;
-
-            color: #111827;
-        }
-
-
-        /* =========================================================
-           SOURCE FILTERS
-        ========================================================= */
-
-        .source-list {
-
-            display: flex;
-
-            flex-wrap: wrap;
-
-            gap: 6px;
-        }
-
-
-        .source-button {
-
-            padding:
-                6px 9px;
-
-            border:
-                1px solid #e1e5e9;
-
-            border-radius: 6px;
-
-            background: #ffffff;
-
-            font-size: 10px;
-
-            color: #6b7280;
-
-            cursor: pointer;
-        }
-
-
-        .source-button.active {
-
-            border-color: #2563eb;
-
-            background: #eff6ff;
-
-            color: #2563eb;
-        }
-
-
-        /* =========================================================
-           WEATHER DATA
-        ========================================================= */
-
-        .weather-data {
-
-            display: flex;
-
-            flex-direction: column;
-
-            gap: 7px;
-        }
-
-
-        .weather-placeholder {
-
-            padding:
-                20px 10px;
-
-            text-align: center;
-
-            font-size: 12px;
-
-            line-height: 1.5;
-
-            color: #9ca3af;
-        }
-
-
-        .weather-record {
-
-            padding: 10px;
-
-            border:
-                1px solid #e5e7eb;
-
-            border-radius: 8px;
-
-            background: #fafbfc;
-        }
-
-
-        .weather-record-header {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            gap: 10px;
-
-            margin-bottom: 7px;
-        }
-
-
-        .weather-source {
-
-            font-size: 10px;
-
-            font-weight: 700;
-
-            color: #374151;
-        }
-
-
-        .weather-distance {
-
-            font-size: 10px;
-
-            color: #2563eb;
-
-            white-space: nowrap;
-        }
-
-
-        .weather-meta {
-
-            margin-bottom: 8px;
-
-            font-size: 10px;
-
-            color: #9ca3af;
-        }
-
-
-        .weather-variable {
-
-            display: flex;
-
-            justify-content: space-between;
-
-            gap: 10px;
-
-            padding:
-                5px 0;
-
-            border-top:
-                1px solid #eef0f2;
-
-            font-size: 11px;
-        }
-
-
-        .weather-variable-name {
-
-            color: #6b7280;
-        }
-
-
-        .weather-variable-value {
-
-            font-weight: 600;
-
-            color: #111827;
-
-            text-align: right;
-        }
-
-/* =========================================================
-   SOURCE DES DONNÉES
-========================================================= */
-
-.data-source {
-
-    margin-bottom: 12px;
-
-    padding: 14px;
-
-    border-radius: 9px;
-
-    background: #f8fafc;
-
-    border: 1px solid #e2e8f0;
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeatherScore</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"/>
+<link rel="icon" type="image/png" href="facion.png">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; font-family: system-ui, sans-serif; background: #111; overflow: hidden; }
+body { display: flex; flex-direction: column; }
+#map { flex: 1; min-height: 0; }
+
+/* ── BOTTOM BAR ── */
+#bottom-bar {
+  height: 40px;
+  background: #1a1a1a;
+  border-top: 1px solid #333;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  gap: 6px;
+  flex-shrink: 0;
+  z-index: 1000;
+}
+
+.bar-btn {
+  display: flex; align-items: center; gap: 5px;
+  padding: 4px 10px;
+  background: #2a2a2a; border: 1px solid #444; border-radius: 4px;
+  color: #ccc; font-size: 12px; cursor: pointer; white-space: nowrap;
+  transition: background .15s, border-color .15s; font-family: inherit;
+}
+.bar-btn:hover { background: #333; border-color: #666; color: #fff; }
+.bar-btn.active { background: #1d3a5f; border-color: #4a90d9; color: #7bc3ff; }
+.bar-btn.ok { border-color: #4ade80 !important; color: #4ade80 !important; }
+
+.bar-sep { width: 1px; height: 22px; background: #333; flex-shrink: 0; }
+
+#update-info { font-size: 11px; color: #888; white-space: nowrap; }
+#update-info b { color: #aaa; font-weight: 500; }
+
+.zoom-btn {
+  width: 30px; height: 30px;
+  background: #2a2a2a; border: 1px solid #444; border-radius: 4px;
+  color: #ccc; font-size: 18px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center;
+  transition: background .15s; font-family: inherit;
+}
+.zoom-btn:hover { background: #333; color: #fff; }
+#zoom-level { font-size: 11px; color: #666; min-width: 30px; text-align: center; }
+.bar-right { margin-left: auto; display: flex; align-items: center; gap: 6px; }
+#pt-info { font-size: 11px; color: #555; }
+#by { font-size: 11px; color: #555; }
+
+#map-logo{
+  position: fixed;
+  right: 12px;
+  bottom: 62px; /* juste au-dessus de la barre */
+  width: 90px;  /* taille du logo */
+  opacity: 0.6;
+  z-index: 950;
+  pointer-events: none;
+  user-select: none;
+}
+
+/* ── SCORE PANEL ── */
+#panel {
+  position: fixed;
+  right: 10px;
+  bottom: 50px;
+  width: 640px;
+  height: auto;
+  max-height: 480px;
+  background: #181818;
+  border: 1px solid #3a3a3a;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex; flex-direction: column;
+  z-index: 2000;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.7);
+  transform: translateX(660px);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s cubic-bezier(0.4,0,0.2,1), transform .25s cubic-bezier(0.4,0,0.2,1);
+}
+
+/* ── SIDE MENU ── */
+#side-menu {
+  position: fixed;
+  top: 0;
+  left: -280px; /* Caché par défaut */
+  width: 280px;
+  height: 100%;
+  background: #181818;
+  border-right: 1px solid #333;
+  z-index: 3000;
+  transition: left 0.3s ease;
+  padding: 20px;
+  box-shadow: 5px 0 15px rgba(0,0,0,0.5);
 }
 
 
-.data-source-status {
+.menu-close {
+  position: absolute;
+  top: 15px;
+  right: 15px;
+  background: none;
+  border: none;
+  color: #666;
+  font-size: 24px;
+  cursor: pointer;
+}
+.menu-close:hover { color: #fff; }
 
-    display: inline-block;
-
-    margin-bottom: 7px;
-
-    padding: 4px 7px;
-
-    border-radius: 5px;
-
-    background: #dcfce7;
-
-    color: #166534;
-
-    font-size: 9px;
-
-    font-weight: 800;
-
-    letter-spacing: 0.08em;
+.menu-title {
+  color: #7bc3ff;
+  font-size: 18px;
+  font-weight: 700;
+  margin-bottom: 30px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+.menu-subtitle {
+  color: #7bc3ff;
+  font-family: 'DM Mono', monospace;
+  font-size: 15px;
+    letter-spacing: 0.2em;
+  text-transform: uppercase;
+  margin-bottom: 16px;
+}
+.menu-links {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
 }
 
-
-.data-source-name {
-
-    font-size: 11px;
-
-    color: #64748b;
-
-    margin-bottom: 4px;
+#side-menu.open {
+  left: 0; /* Glisse vers la droite */
 }
 
-
-.data-source-date {
-
-    font-size: 18px;
-
-    line-height: 1.2;
-
-    font-weight: 750;
-
-    letter-spacing: -0.02em;
-
-    color: #111827;
+.menu-link {
+  color: #ccc;
+  text-decoration: none;
+  font-size: 14px;
+  padding: 10px;
+  border-radius: 4px;
+  transition: background 0.2s;
 }
 
-
-/* Chargement */
-
-.data-source.loading {
-
-    background: #f8fafc;
-
-    border-color: #e5e7eb;
+.menu-link:hover {
+  background: #2a2a2a;
+  color: #fff;
 }
 
+/* Overlay pour fermer le menu en cliquant à côté */
+#menu-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  z-index: 2900;
+}
+#menu-overlay.active { display: block; }
 
-.data-source.loading
-.data-source-status {
+#login-overlay {
+  position: fixed;
+  top: 0; left: 0; width: 100%; height: 100%;
+  background: #0a0a0a;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  z-index: 9999; /* Au-dessus de tout */
+  color: white;
+  transition: opacity 0.5s ease;
+}
+#login-box {
+  background: #181818;
+  padding: 30px;
+  border-radius: 8px;
+  border: 1px solid #333;
+  text-align: center;
+  box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+}
+#login-box h2 { color: #7bc3ff; margin-bottom: 20px; font-size: 18px; }
+#login-box input {
+  background: #222; border: 1px solid #444;
+  padding: 10px; color: white; border-radius: 4px;
+  width: 200px; text-align: center; margin-bottom: 15px;
+  outline: none;
+}
+#login-box input:focus { border-color: #7bc3ff; }
+#login-box button {
+  background: #1d3a5f; color: #7bc3ff;
+  border: 1px solid #4a90d9; padding: 8px 20px;
+  border-radius: 4px; cursor: pointer; font-weight: bold;
+}
+#login-box button:hover { background: #244a7a; }
+.error-msg { color: #f87171; font-size: 12px; margin-top: 10px; display: none; }
 
-    background: #f3f4f6;
 
-    color: #6b7280;
+
+
+/* ── EXPORT POPUP ── */
+#export-popup {
+  position: fixed;
+  bottom: 50px; /* Juste au-dessus de la barre */
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  width: 320px;
+  background: #181818;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  z-index: 2500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
-/* Erreur */
-
-.data-source.error {
-
-    background: #fff7ed;
-
-    border-color: #fed7aa;
+#export-popup.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(-50%) translateY(0);
 }
 
+.exp-title { color: #7bc3ff; font-size: 13px; font-weight: 600; margin-bottom: 10px; display: block; }
+.exp-txt { color: #999; font-size: 11px; margin-bottom: 12px; line-height: 1.4; }
 
-.data-source.error
-.data-source-status {
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+.exp-opt {
+  background: #252525; border: 1px solid #444; color: #ccc;
+  padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer;
+  text-align: center; transition: all 0.15s;
+}
+.exp-opt:hover { background: #333; border-color: #7bc3ff; color: #fff; }
 
-    background: #ffedd5;
+.exp-footer {
+  border-top: 1px solid #2a2a2a; padding-top: 10px;
+  font-size: 10px; color: #666; text-align: center;
+  cursor: pointer; line-height: 1.3;
+}
+.exp-footer:hover { color: #aaa; }
 
-    color: #c2410c;
+/*gribcorrected-popup*/
+
+#gribcorrected-popup {
+  position: fixed;
+  bottom: 50px; /* Juste au-dessus de la barre */
+  left: 50%;
+  transform: translateX(-50%) translateY(20px);
+  width: 320px;
+  background: #181818;
+  border: 1px solid #3a3a3a;
+  border-radius: 8px;
+  padding: 15px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+  z-index: 2500;
+  opacity: 0;
+  pointer-events: none;
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
-
-/* Import manuel */
-
-.data-source.manual {
-
-    background: #eff6ff;
-
-    border-color: #bfdbfe;
+#gribcorrected-popup.open {
+  opacity: 1;
+  pointer-events: all;
+  transform: translateX(-50%) translateY(0);
 }
 
+.exp-title { color: #7bc3ff; font-size: 13px; font-weight: 600; margin-bottom: 10px; display: block; }
+.exp-txt { color: #999; font-size: 11px; margin-bottom: 12px; line-height: 1.4; }
 
-.data-source.manual
-.data-source-status {
-
-    background: #dbeafe;
-
-    color: #1d4ed8;
+.exp-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 15px; }
+.exp-opt {
+  background: #252525; border: 1px solid #444; color: #ccc;
+  padding: 6px; border-radius: 4px; font-size: 11px; cursor: pointer;
+  text-align: center; transition: all 0.15s;
 }
-        /* =========================================================
-           FOOTER
-        ========================================================= */
+.exp-opt:hover { background: #333; border-color: #7bc3ff; color: #fff; }
 
-        .sidebar-footer {
-
-            margin-top: auto;
-
-            padding:
-                15px 22px;
-
-            border-top:
-                1px solid #eef0f2;
-
-            font-size: 10px;
-
-            color: #9ca3af;
-        }
+.exp-footer {
+  border-top: 1px solid #2a2a2a; padding-top: 10px;
+  font-size: 10px; color: #666; text-align: center;
+  cursor: pointer; line-height: 1.3;
+}
+.exp-footer:hover { color: #aaa; }
 
 
-        /* =========================================================
-           LEAFLET
-        ========================================================= */
+#panel.open { opacity: 1; transform: translateX(0); pointer-events: all; }
 
-        .leaflet-control-zoom {
+/* ── SELECTED POINT RING ── */
+.selected-ring {
+  stroke: #fff !important;
+  stroke-width: 2 !important;
+  fill-opacity: 1 !important;
+}
 
-            border: none !important;
+/* ── STAR POPUP ── */
+#star-popup {
+  position: fixed;
+  z-index: 1800;
+  pointer-events: none;
+  display: none;
+}
 
-            box-shadow:
-                0 3px 12px rgba(0, 0, 0, 0.08) !important;
-        }
+/* ── COLOR MODE TOGGLE ── */
+#color-mode-btn.active { background: #1d3a5f; border-color: #4a90d9; color: #7bc3ff; }
 
+.ph { padding: 10px 14px 0; border-bottom: 1px solid #2a2a2a; flex-shrink: 0; }
+.ph-row1 { display: flex; align-items: center; margin-bottom: 8px; gap: 10px; }
+.p-coords { font-size: 13px; font-weight: 600; color: #7bc3ff; font-family: monospace; }
+.p-zone { font-size: 12px; color: #666; }
+.p-best { margin-left: auto; font-size: 12px; color: #4ade80; font-weight: 600; }
+.p-close {
+  background: none; border: 1px solid #3a3a3a; border-radius: 3px;
+  color: #666; width: 24px; height: 24px; cursor: pointer;
+  font-size: 14px; display: flex; align-items: center; justify-content: center;
+}
+.p-close:hover { color: #fff; border-color: #666; }
 
-        .leaflet-control-zoom a {
+.p-tabs { display: flex; }
+.ptab {
+  padding: 5px 14px; font-size: 11px; background: none; border: none;
+  border-bottom: 2px solid transparent; color: #555; cursor: pointer;
+  font-family: inherit; transition: color .15s;
+}
+.ptab.active { color: #7bc3ff; border-bottom-color: #7bc3ff; }
+.ptab:hover:not(.active) { color: #999; }
 
-            border: none !important;
+.pb { flex: 1; overflow-y: auto; scrollbar-width: thin; scrollbar-color: #333 transparent; }
+.pb::-webkit-scrollbar { width: 4px; }
+.pb::-webkit-scrollbar-thumb { background: #333; border-radius: 2px; }
 
-            color: #374151 !important;
-        }
+.tc { display: none; }
+.tc.active { display: block; }
+.sec-head {
+  font-size: 9.5px; text-transform: uppercase; letter-spacing: .1em;
+  color: #444; padding: 8px 14px 4px;
+}
+.sec-note {
+  font-size: 10.5px; color: #555; padding: 4px 14px 10px; line-height: 1.4;
+}
 
+table { width: 100%; border-collapse: collapse; font-size: 11.5px; }
+thead th {
+  font-size: 9px; font-weight: 500; color: #444; text-transform: uppercase;
+  letter-spacing: .08em; padding: 5px 5px; text-align: center;
+  border-bottom: 1px solid #222; white-space: nowrap;
+}
+thead th:first-child { text-align: left; padding-left: 14px; min-width: 145px; }
+tbody tr { border-bottom: 1px solid rgba(255,255,255,0.03); transition: background .1s; }
+tbody tr:hover { background: rgba(255,255,255,0.03); }
+tbody tr.brow { background: rgba(74,222,128,0.07); }
+td { padding: 7px 5px; text-align: center; vertical-align: middle; }
+td:first-child { text-align: left; padding-left: 14px; }
+.mn { font-weight: 600; font-size: 12px; color: #ddd; }
+.ms { font-size: 10px; color: #444; margin-top: 1px; }
+.btag { display: inline-block; font-size: 8.5px; background: #4ade80; color: #042a14; padding: 1px 5px; border-radius: 2px; font-weight: 700; margin-left: 4px; vertical-align: middle; }
 
-        .weather-map-marker {
+.sc { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.sc-bar { width: 26px; height: 3px; background: #252525; border-radius: 2px; overflow: hidden; }
+.sc-fill { height: 100%; border-radius: 2px; }
+.sc-v { font-size: 10.5px; font-weight: 500; }
+.nd { font-size: 10px; color: #333; }
 
-            border-radius: 50%;
+.t5 .sc-fill { background: #4ade80; } .t5 .sc-v { color: #4ade80; }
+.t4 .sc-fill { background: #86efac; } .t4 .sc-v { color: #86efac; }
+.t3 .sc-fill { background: #fbbf24; } .t3 .sc-v { color: #fbbf24; }
+.t2 .sc-fill { background: #f97316; } .t2 .sc-v { color: #f97316; }
+.t1 .sc-fill { background: #f87171; } .t1 .sc-v { color: #f87171; }
 
-            border:
-                2px solid white;
+.tot { font-size: 14px; font-weight: 700; }
+.empty-msg { padding: 20px 14px; color: #555; font-size: 12px; line-height: 1.5; }
 
-            box-shadow:
-                0 1px 5px rgba(0, 0, 0, 0.35);
-        }
+/* Leaflet overrides */
+.leaflet-control-zoom { display: none !important; }
+.leaflet-control-attribution { font-size: 9px !important; opacity: .4; background: rgba(0,0,0,.5) !important; color: #666 !important; }
+.leaflet-control-attribution a { color: #666 !important; }
 
+/* Zone tooltip */
+.zt {
+  background: rgba(10,10,10,.85) !important;
+  border: 1px solid rgba(255,255,255,.15) !important;
+  border-radius: 3px !important;
+  color: #ddd !important;
+  font-size: 11px !important;
+  font-weight: 600 !important;
+  padding: 3px 8px !important;
+  box-shadow: none !important;
+  white-space: nowrap;
+}
+.zt::before { display: none !important; }
 
-        /* =========================================================
-           LOADING
-        ========================================================= */
-
-        .loading {
-
-            opacity: 0.5;
-
-            pointer-events: none;
-        }
-
-
-        /* =========================================================
-           RESPONSIVE
-        ========================================================= */
-
-        @media (max-width: 800px) {
-
-            .app {
-
-                flex-direction: column;
-            }
-
-
-            .map-container {
-
-                height: 60%;
-
-                flex: none;
-            }
-
-
-            .sidebar {
-
-                width: 100%;
-
-                height: 40%;
-            }
-        }
-
-    </style>
-
+/* Legend */
+#legend {
+  position: fixed;
+  bottom: 50px; left: 10px;
+  background: rgba(18,18,18,.92);
+  border: 1px solid #2a2a2a;
+  border-radius: 4px;
+  padding: 8px 10px;
+  z-index: 900;
+  font-size: 11px;
+  color: #999;
+  pointer-events: none;
+}
+#legend .lt { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #444; margin-bottom: 5px; }
+.li { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
+.ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+#data-badge {
+  position: fixed; top: 10px; left: 10px; z-index: 950;
+  font-size: 11px; padding: 5px 10px; border-radius: 4px;
+  background: rgba(18,18,18,.92); border: 1px solid #2a2a2a; color: #999;
+  pointer-events: none;
+}
+#data-badge.real { color: #4ade80; border-color: #234; }
+#data-badge.fake { color: #fbbf24; border-color: #432; }
+</style>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
 </head>
-
-
 <body>
-
-
-<div class="app">
-
-
-    <!-- =========================================================
-         CARTE
-    ========================================================= -->
-
-    <main class="map-container">
-
-        <div id="map"></div>
-
-        <div
-            class="map-status"
-            id="mapStatus"
-        >
-            Importez un fichier CSV puis cliquez sur la carte
-        </div>
-
-    </main>
-
-
-
-    <!-- =========================================================
-         PANNEAU
-    ========================================================= -->
-
-    <aside class="sidebar">
-
-
-        <!-- HEADER -->
-
-        <header class="sidebar-header">
-
-            <h1>
-                DatExpl WeatherScore
-            </h1>
-
-            <p>
-                Exploration des données météorologiques
-                autour d'une position.
-            </p>
-
-            <a
-                href="welcome.html"
-                class="back-link"
-            >
-                ← Back to Account
-            </a>
-
-        </header>
-
-
-
-        <!-- =====================================================
-             IMPORT
-        ====================================================== -->
-
-        <section class="section">
-
-            <div class="section-title">
-                Données
-            </div>
-        La donnée chargée automatiquement est la donnée la plus récente téléchargée par le serveur. Pour importer une autre donnée utilisez la fonction suivante.
-
-            <label
-                class="file-drop"
-                for="fileInput"
-            >
-
-                <strong>
-                    Importer un fichier CSV
-                </strong>
-
-                <span>
-                    Sélectionnez votre fichier météo
-                </span>
-
-            </label>
-
-
-            <input
-                type="file"
-                id="fileInput"
-                accept=".csv,text/csv"
-            >
-
-
-            <div
-                class="file-info"
-                id="fileInfo"
-            >
-            </div>
-
-        </section>
-
-
-
-        <!-- =====================================================
-             RAYON
-        ====================================================== -->
-
-        <section class="section">
-
-            <div class="section-title">
-                Rayon de recherche
-            </div>
-
-
-            <div class="radius-value">
-
-                <span
-                    class="radius-number"
-                    id="radiusValue"
-                >
-                    25
-                </span>
-
-                <span class="radius-unit">
-                    Nm
-                </span>
-
-            </div>
-
-
-            <input
-                type="range"
-                id="radiusSlider"
-                min="1"
-                max="500"
-                value="25"
-                step="1"
-            >
-
-
-            <div class="range-labels">
-
-                <span>
-                    1 Nm
-                </span>
-
-                <span>
-                    500 Nm
-                </span>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- =====================================================
-             POSITION
-        ====================================================== -->
-
-        <section class="section">
-
-            <div class="section-title">
-                Position sélectionnée
-            </div>
-
-
-            <div class="position-box">
-
-                <div class="position-row">
-
-                    <span class="position-label">
-                        Latitude
-                    </span>
-
-                    <span
-                        class="position-value"
-                        id="latitude"
-                    >
-                        —
-                    </span>
-
-                </div>
-
-
-                <div class="position-row">
-
-                    <span class="position-label">
-                        Longitude
-                    </span>
-
-                    <span
-                        class="position-value"
-                        id="longitude"
-                    >
-                        —
-                    </span>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- =====================================================
-             RESULTATS
-        ====================================================== -->
-
-        <section class="section">
-
-            <div class="section-title">
-                Résultats
-            </div>
-
-
-            <div class="data-summary">
-
-
-                <div class="stat">
-
-                    <div class="stat-label">
-                        Données
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="pointCount"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                    <div class="stat-label">
-                        Distance max.
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="maxDistance"
-                    >
-                        —
-                    </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                    <div class="stat-label">
-                        Sources
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="sourceCount"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-
-                <div class="stat">
-
-                    <div class="stat-label">
-                        Variables
-                    </div>
-
-                    <div
-                        class="stat-value"
-                        id="variableCount"
-                    >
-                        0
-                    </div>
-
-                </div>
-
-            </div>
-
-        </section>
-
-
-
-        <!-- =====================================================
-             SOURCES
-        ====================================================== -->
-
-<section class="section" id="sourceSection" style="display:none;">
-    <div class="section-title">Sources</div>
-    <div class="source-list" id="sourceList"></div>
-
-    <!-- Case à cocher pour exclure le radar -->
-    <label style="display: flex; align-items: center; gap: 8px; margin-top: 12px; font-size: 11px; color: #374151; cursor: pointer;">
-        <input type="checkbox" id="excludeRadar">
-        Masquer les observations RADAR
-    </label>
-</section>
-
-
-
-        <!-- =====================================================
-             DONNEES METEO
-        ====================================================== -->
-
-<section class="section">
-
-    <div class="section-title">
-        Données météo
-    </div>
-
-    <!-- Source actuelle -->
-
-    <div
-        class="data-source"
-        id="dataSource"
-    >
-
-        <div class="data-source-status">
-            CHARGEMENT...
-        </div>
-
-        <div
-            class="data-source-name"
-            id="dataSourceName"
-        >
-            Recherche de latest.csv
-        </div>
-
-        <div
-            class="data-source-date"
-            id="dataSourceDate"
-        >
-            —
-        </div>
-
-    </div>
-
-
-    <!-- Import manuel -->
-
-    <label
-        class="file-drop"
-        for="fileInput"
-    >
-
-        <strong>
-            ↗ Remplacer les données
-        </strong>
-
-        <span>
-            Importer manuellement un autre fichier CSV
-        </span>
-
-    </label>
-
-
-    <input
-        type="file"
-        id="fileInput"
-        accept=".csv,text/csv"
-    >
-
-
-    <div
-        class="file-info"
-        id="fileInfo"
-    >
-    </div>
-
-</section>
-
-
-        <!-- FOOTER -->
-
-        <footer class="sidebar-footer">
-
-            DatExpl WeatherScore · Development version · YK
-
-        </footer>
-
-    </aside>
-
+<div id="map"></div>
+
+<img id="map-logo" src="ENSM.png" alt="Logo">
+
+<div id="data-badge">Chargement des données…</div>
+
+<!-- MENU GÉNÉRAL -->
+<div id="menu-overlay" onclick="toggleMenu()"></div>
+<div id="side-menu">
+  <button class="menu-close" onclick="toggleMenu()">✕</button>
+  <div class="menu-title"><img src="facion.png" height="30"/> WeatherScore</div>
+  <nav class="menu-links">
+    <a href="welcome.html" class="menu-link">Dashboard</a>
+    <div class="menu-subtitle">Product</div>
+    <a href="modelmap.html" class="menu-link">Model map</a>
+    <a href="liveratting.html" class="menu-link">Live ratting</a>
+    <a href="export.html" class="menu-link">Export</a>
+    <a href="api.html" class="menu-link">API</a>
+    <div class="menu-subtitle">Ressources</div>
+    <a href="documentation.html" class="menu-link">Documentation</a>
+    <a href="tutorial.html" class="menu-link">Tutorial</a>
+    <a href="methodology.html" class="menu-link">Methodology</a>
+    <div class="menu-subtitle">Company</div>
+    <a href="company.html" class="menu-link">Partners</a>
+    <a href="company.html" class="menu-link">Credits</a>
+    <a href="company.html" class="menu-link">Contact</a>
+    <a href="company.html" class="menu-link">Privacy</a>
+  </nav>
 </div>
 
 
+<!-- SCORE PANEL -->
+<div id="panel">
+  <div class="ph">
+    <div class="ph-row1">
+      <span class="p-coords" id="pc">—</span>
+      <span class="p-zone" id="pz"></span>
+      <span class="p-best" id="pb"></span>
+      <button class="p-close" onclick="closePanel()">✕</button>
+    </div>
+    <div class="p-tabs">
+      <button class="ptab active" onclick="showTab('atmo',this)">Atmosphériques</button>
+      <button class="ptab" onclick="showTab('ocean',this)">Océaniques</button>
+      <button class="ptab" onclick="showTab('vague',this)">Vagues</button>
+    </div>
+  </div>
+  <div class="pb">
+    <div id="tab-atmo" class="tc active">
+      <div class="sec-head">Modèles atmosphériques</div>
+      <table>
+        <thead><tr><th>Modèle</th><th>Synop</th><th>Bateaux</th><th>Bouée</th><th>Radar</th><th>ASCAT</th><th>Radiosonde</th><th>Sat. IR</th><th>/5</th></tr></thead>
+        <tbody id="tb-atmo"></tbody>
+      </table>
+    </div>
+    <div id="tab-ocean" class="tc">
+      <div class="sec-head">Modèles océaniques</div>
+      <div id="tb-ocean-empty" class="empty-msg"></div>
+      <table id="tb-ocean-table" style="display:none">
+        <thead><tr><th>Modèle</th><th>Bouée ancrée</th><th>Altimétrie</th><th>SST Sat.</th><th>Argo float</th><th>Glider</th><th>Courantomètre</th><th>/5</th></tr></thead>
+        <tbody id="tb-ocean"></tbody>
+      </table>
+    </div>
+    <div id="tab-vague" class="tc">
+      <div class="sec-head">Modèles de vagues</div>
+      <div class="sec-note">Le détail par type d'observation (altimétrie, SAR...) n'est pas encore disponible ; seul le score global (comparaison réelle GRIB ↔ capteurs) est calculé pour l'instant.</div>
+      <table>
+        <thead><tr><th>Modèle</th><th>Bouée dir.</th><th>Altimétrie Hs</th><th>SAR</th><th>Bouée houle</th><th>Obs. visuelles</th><th>/5</th></tr></thead>
+        <tbody id="tb-vague"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
 
-<!-- =============================================================
-     LEAFLET
-============================================================= -->
+<!-- STAR POPUP -->
+<div id="star-popup"></div>
 
-<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- LEGEND -->
+<div id="legend">
+  <div class="lt" id="legend-title">Meilleur modèle atmo.</div>
+  <div id="legend-items"></div>
+</div>
 
+<!-- BOTTOM BAR -->
+<div id="bottom-bar">
+  <button class="bar-btn" id="btn-main-menu" onclick="toggleMenu()">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+  <path d="M2 3H12"/>
+  <path d="M2 7H12"/>
+  <path d="M2 11H12"/>
+</svg>
+    Menu
+  </button>
+
+
+  <div class="bar-sep"></div>
+  <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 5.5H8.5C10 5.5 10.8 4.8 10.8 3.8C10.8 2.9 10.1 2.2 9.2 2.2C8.4 2.2 7.8 2.7 7.6 3.4"/>
+  <path d="M2 8.5H10C11.2 8.5 12 9.2 12 10.2C12 11.1 11.3 11.8 10.4 11.8C9.6 11.8 9 11.3 8.8 10.6"/>
+</svg>
+    Atmosphérique
+  </button>
+    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M2 5C3 4 4 4 5 5C6 6 7 6 8 5C9 4 10 4 11 5"/>
+  <path d="M2 9C3 8 4 8 5 9C6 10 7 10 8 9C9 8 10 8 11 9"/>
+</svg>
+    Courants
+  </button>
+    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M1.5 8C2.5 6 3.5 6 4.5 8C5.5 10 6.5 10 7.5 8C8.5 6 9.5 6 10.5 8C11.5 10 12.5 10 13 8"/>
+</svg>
+    Vagues
+  </button>
+  <div class="bar-sep"></div>
+  <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+      <polygon points="2,7 7,2 12,7 7,12"/>
+    </svg>
+    Zones modèles
+  </button>
+
+  <div class="bar-sep"></div>
+  <button class="bar-btn" id="color-mode-btn" onclick="toggleColorMode(this)" title="Basculer couleur modèle / score">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">
+      <circle cx="7" cy="7" r="5"/><path d="M7 2v10"/>
+    </svg>
+    Mode couleur
+  </button>
+
+  <div class="bar-sep"></div>
+
+  <div id="update-info">Dernière MAJ : <b id="last-update">—</b></div>
+
+  <button class="bar-btn" id="btn-reload" onclick="reloadData()">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+      <path d="M12 7A5 5 0 1 1 7 2M12 2v4H8"/>
+    </svg>
+    Recharger
+  </button>
+  
+<button class="bar-btn" id="btn-import" onclick="document.getElementById('points-file-input').click()">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M7 10V2"/>
+    <path d="M4 5L7 2L10 5"/>
+    <path d="M2 12H12"/>
+  </svg>
+  Importer points
+</button>
+
+<input
+  type="file"
+  id="points-file-input"
+  accept=".bin"
+  style="display:none"
+  onchange="importPointsFile(this)"
+>
+
+<button class="bar-btn" id="btn-import-data" onclick="document.getElementById('data-file-input').click()">
+  <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5">
+    <path d="M7 10V2"/>
+    <path d="M4 5L7 2L10 5"/>
+    <path d="M2 12H12"/>
+  </svg>
+  Importer scores
+</button>
+
+<input
+  type="file"
+  id="data-file-input"
+  accept=".bin"
+  style="display:none"
+  onchange="importDataFile(this)"
+>
+<div class="bar-sep"></div>
+
+  <button class="bar-btn" id="btn-export" onclick="toggleExport(event)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 2V9"/>
+  <path d="M4.5 6.5L7 9L9.5 6.5"/>
+  <path d="M2.5 11.5H11.5"/>
+</svg>
+    Exporter
+  </button>
+    <button class="bar-btn" id="btn-reload" onclick="https://www.windy.com/plugin/wscore/">
+    <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M8 2H12V6"/>
+  <path d="M12 2L7 7"/>
+  <path d="M6 3H3.5C2.7 3 2 3.7 2 4.5V10.5C2 11.3 2.7 12 3.5 12H9.5C10.3 12 11 11.3 11 10.5V8"/>
+</svg>
+    Ouvrir dans Windy
+  </button>
+
+
+  <button class="bar-btn" id="btn-grib" onclick="toggleGribExport(event)">
+<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+  <path d="M7 2V9"/>
+  <path d="M4.5 6.5L7 9L9.5 6.5"/>
+  <path d="M2.5 11.5H11.5"/>
+</svg>
+    Télécharger Grib corrigé
+  </button>
+
+  <div class="bar-right">
+  <span id="by">Yann Kerhervé</span>
+    <div class="bar-sep"></div>
+    <span id="pt-info"></span>
+    <div class="bar-sep"></div>
+    <button class="zoom-btn" onclick="map.zoomIn()">+</button>
+    <span id="zoom-level">z3</span>
+    <button class="zoom-btn" onclick="map.zoomOut()">−</button>
+    <div class="bar-sep"></div>
+    <a class="zoom-btn" href="welcome.html"><img src="Av.png" width="10"></a>
+  </div>
+</div>
+
+
+<div id="export-popup">
+  <span class="exp-title">Configuration de l'export</span>
+  <p class="exp-txt">Veuillez sélectionner la zone à exporter sur la carte, puis choisissez votre logiciel :</p>
+
+  <div class="exp-grid">
+    <div class="exp-opt" onclick="closeExport()">Adrena</div>
+    <div class="exp-opt" onclick="closeExport()">TimeZero</div>
+    <div class="exp-opt" onclick="closeExport()">Xygrib</div>
+    <div class="exp-opt" onclick="closeExport()">Simsail</div>
+    <div class="exp-opt" onclick="closeExport()">Tactics</div>
+    <div class="exp-opt" onclick="closeExport()">Bon Voyage</div>
+  </div>
+
+  <div class="exp-footer" onclick="window.location.href='mailto:dev@example.com'">
+    Je souhaite exporter vers un autre fichier,<br><b>je contacte le développeur</b>
+  </div>
+</div>
+
+<div id="gribcorrected-popup">
+  <span class="exp-title">Configuration de l'export d'un grib corrigé</span>
+  <p class="exp-txt">Veuillez sélectionner la zone à exporter sur la carte</p>
+
+  <div class="exp-grid">
+    <div class="exp-opt" onclick="closegribExport()">Monomodèle corrigé</div>
+    <div class="exp-opt" onclick="closegribExport()">Multimodèle non corrigé</div>
+    <div class="exp-opt" onclick="closegribExport()">Multimodèle corrigé</div>
+  </div>
+
+  <div class="exp-footer" onclick="window.location.href='mailto:dev@example.com'">
+    Attention. Les GRIBS sont générés automatiquement, sans vérifications. Le developpeur ne peut en aucun cas être tenu responsable de quelconque évènement lié à l'utilisation de ces gribs. L'utilisateur les utilise de son propre gré, à ses risques et périls, en toute connaissance de cause. <br><b>Je contacte le développeur</b>
+  </div>
+</div>
 
 
 <script>
+let allPoints = null;
 
-const excludeRadarInput = document.getElementById("excludeRadar");
-/* ================================================================
-   CONFIGURATION
-================================================================ */
+// ══════════════════════════════════════════════
+// DONNÉES RÉELLES (points_mer_data.bin) — capteurs + scores calculés
+// par comparaison GRIB ↔ observations. Remplace le générateur
+// pseudo-aléatoire srand() quand disponible.
+// ══════════════════════════════════════════════
+let realDataByKey = null;   // Map "lat,lon" -> record réel (seulement les points AVEC donnée : fichier creux)
+let realDataLoaded = false; // true dès qu'un fichier de données réelles a été chargé avec succès,
+                             // même s'il est vide pour un point donné. Distingue :
+                             //  - jamais chargé -> mode démonstration complet (repli sur srand())
+                             //  - chargé mais point absent -> ce point n'a réellement aucune donnée
+                             //    à proximité (fichier creux) -> afficher "—", jamais de repli fictif
+let realHeader = null;      // { nAtmo, nOcean, nWave, maxSensors }
+const REAL_SENS_TYPE_COUNT = 7;
+// Ordre exact utilisé côté C (enum SensorType) : SYNOP,BATEAU,BOUEE,RADAR,ASCAT,RADIOSONDE,SATIR
+const REAL_SENSOR_TYPE_NAMES = ['Synop','Bateau','Bouée','Radar','ASCAT','Radiosonde','Sat. IR'];
 
-const CONFIG = {
+function keyOf(lat, lon) { return lat + ',' + lon; }
 
-    /*
-     * Rayon de la Terre en milles nautiques.
-     *
-     * 1 Nm = 1 852 mètres
-     */
+// Parse le format binaire produit par gen_points_mer.c (points_mer_data.bin) :
+//   FileHeader (44 octets) puis, par point :
+//     lat:f32 lon:f32 n_sensors:u8
+//     n_sensors x { type:u8 lat:f32 lon:f32 reliability:f32 correction:f32 }
+//     N_MODELS x f32 (score global)
+//     N_MODELS x (7 x f32) (score par type de capteur)
+function parseDataBuffer(buffer) {
+  const dv = new DataView(buffer);
+  let o = 0;
+  const magic = String.fromCharCode(...new Uint8Array(buffer, 0, 8)); o += 8;
+  if (magic !== 'MPTS_BIN') throw new Error("Format de fichier de scores non reconnu (magic invalide).");
+  const version = dv.getUint32(o, true); o += 4;
+  const nPoints = dv.getUint32(o, true); o += 4;
+  o += 4*4; // lat_min,lat_max,lon_min,lon_max
+  o += 4;   // resolution
+  const nAtmo = dv.getUint8(o); o += 1;
+  const nOcean = dv.getUint8(o); o += 1;
+  const nWave = dv.getUint8(o); o += 1;
+  const maxSensors = dv.getUint8(o); o += 1;
+  o += 4; // reserved
+  const nModels = nAtmo + nOcean + nWave;
 
-    earthRadiusNm: 3440.065,
-
-    /*
-     * Nombre maximum de marqueurs affichés
-     * simultanément sur la carte.
-     *
-     * Les données restent toutes disponibles
-     * dans le panneau.
-     */
-
-    maxMapMarkers: 1000
-
-};
-
-
-
-/* ================================================================
-   CARTE
-================================================================ */
-
-const map = L.map("map", {
-
-    worldCopyJump: true
-
-}).setView(
-    [46.5, 2.5],
-    5
-);
-
-
-
-/*
- * Fond OpenStreetMap
- */
-
-L.tileLayer(
-
-    "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png",
-
-    {
-
-        maxZoom: 19,
-
-        attribution:
-            "&copy; OpenStreetMap contributors"
-
+  const map = new Map();
+  for (let i = 0; i < nPoints; i++) {
+    const lat = dv.getFloat32(o, true); o += 4;
+    const lon = dv.getFloat32(o, true); o += 4;
+    const nSensors = dv.getUint8(o); o += 1;
+    const sensors = [];
+    for (let s = 0; s < nSensors; s++) {
+      const type = dv.getUint8(o); o += 1;
+      const slat = dv.getFloat32(o, true); o += 4;
+      const slon = dv.getFloat32(o, true); o += 4;
+      const reliability = dv.getFloat32(o, true); o += 4;
+      const correction = dv.getFloat32(o, true); o += 4;
+      sensors.push({ type, lat: slat, lon: slon, reliability, correction });
     }
-
-).addTo(map);
-
-
-
-/* ================================================================
-   VARIABLES
-================================================================ */
-
-let weatherData = [];
-
-let selectedLatitude = null;
-
-let selectedLongitude = null;
-
-let selectedMarker = null;
-
-let searchCircle = null;
-
-let resultMarkers = [];
-
-let activeSource = "ALL";
-
-
-
-/* ================================================================
-   ELEMENTS HTML
-================================================================ */
-
-const fileInput =
-    document.getElementById("fileInput");
-
-const fileInfo =
-    document.getElementById("fileInfo");
-
-const radiusSlider =
-    document.getElementById("radiusSlider");
-
-const radiusValue =
-    document.getElementById("radiusValue");
-
-const latitudeElement =
-    document.getElementById("latitude");
-
-const longitudeElement =
-    document.getElementById("longitude");
-
-const pointCount =
-    document.getElementById("pointCount");
-
-const maxDistance =
-    document.getElementById("maxDistance");
-
-const sourceCount =
-    document.getElementById("sourceCount");
-
-const variableCount =
-    document.getElementById("variableCount");
-
-const weatherDataElement =
-    document.getElementById("weatherData");
-
-const sourceSection =
-    document.getElementById("sourceSection");
-
-const sourceList =
-    document.getElementById("sourceList");
-
-const mapStatus =
-    document.getElementById("mapStatus");
-
-
-
-/* ================================================================
-   RAYON
-================================================================ */
-
-radiusSlider.addEventListener(
-    "input",
-    function () {
-
-        const radiusNm =
-            Number(this.value);
-
-        radiusValue.textContent =
-            radiusNm;
-
-        updateCircle();
-
-        /*
-         * Si une position est déjà sélectionnée,
-         * on recalcule immédiatement les données.
-         */
-
-        if (
-            selectedLatitude !== null &&
-            selectedLongitude !== null
-        ) {
-
-            updateResults();
-
-        }
-
+    const scores = new Float32Array(nModels);
+    for (let m = 0; m < nModels; m++) { scores[m] = dv.getFloat32(o, true); o += 4; }
+    const typeScores = [];
+    for (let m = 0; m < nModels; m++) {
+      const row = new Float32Array(REAL_SENS_TYPE_COUNT);
+      for (let t = 0; t < REAL_SENS_TYPE_COUNT; t++) { row[t] = dv.getFloat32(o, true); o += 4; }
+      typeScores.push(row);
     }
-);
+    map.set(keyOf(lat, lon), { lat, lon, sensors, scores, typeScores });
+  }
+  return { map, nAtmo, nOcean, nWave, maxSensors, nModels, version };
+}
 
+async function loadRealData() {
+  try {
+    const resp = await fetch('points_mer_data.bin');
+    if (!resp.ok) throw new Error('introuvable');
+    const buf = await resp.arrayBuffer();
+    const parsed = parseDataBuffer(buf);
+    realDataByKey = parsed.map;
+    realDataLoaded = true;
+    realHeader = parsed;
+    console.log('Données réelles chargées :', realDataByKey.size, 'points avec donnée,', parsed.nModels, 'modèles');
+    setDataBadge(true);
+    rebuildModelListsFromHeader();
+  } catch (err) {
+    console.warn('Pas de données réelles (points_mer_data.bin) :', err.message, '— mode démonstration (scores fictifs).');
+    realDataLoaded = false;
+    setDataBadge(false);
+  }
+}
 
+function setDataBadge(real) {
+  const b = document.getElementById('data-badge');
+  if (!b) return;
+  if (real) {
+    b.textContent = 'Données réelles (GRIB ↔ capteurs)';
+    b.className = 'real';
+  } else {
+    b.textContent = 'Mode démonstration (scores fictifs)';
+    b.className = 'fake';
+  }
+}
 
-/* ================================================================
-   CLIC SUR LA CARTE
-================================================================ */
+function getRealRecord(lat, lon) {
+  if (!realDataByKey) return null;
+  return realDataByKey.get(keyOf(lat, lon)) || null;
+}
 
-map.on(
-    "click",
-    function (event) {
+// ══════════════════════════════════════════════
+// VÉRIFICATION DE SESSION SUPABASE
+// ══════════════════════════════════════════════
+const supabaseClient = window.supabaseClient;
 
-        selectedLatitude =
-            event.latlng.lat;
+async function checkAuth() {
+  const { data: { session }, error } = await supabaseClient.auth.getSession();
 
-        selectedLongitude =
-            event.latlng.lng;
+  if (error || !session) {
+    // Redirection vers la page de connexion si aucune session n'est active
+    window.location.href = 'https://yannkerherve.github.io/WeatherScore/login/index.html';
+    return;
+  }
 
+  // Masque l'overlay de chargement/connexion et charge les données marines
+  const overlay = document.getElementById('login-overlay');
+  if (overlay) overlay.style.display = 'none';
+  
+  loadMarineData();
+  loadRealData();
+}
 
-        /*
-         * Supprimer l'ancien marqueur
-         */
+window.addEventListener('load', checkAuth);
 
-        if (selectedMarker) {
-
-            map.removeLayer(
-                selectedMarker
-            );
-
-        }
-
-
-        /*
-         * Nouveau marqueur
-         */
-
-        selectedMarker =
-            L.marker([
-
-                selectedLatitude,
-                selectedLongitude
-
-            ]).addTo(map);
-
-
-        /*
-         * Coordonnées
-         */
-
-        latitudeElement.textContent =
-            selectedLatitude.toFixed(5);
-
-        longitudeElement.textContent =
-            selectedLongitude.toFixed(5);
-
-
-        /*
-         * Cercle
-         */
-
-        updateCircle();
-
-
-        /*
-         * Données
-         */
-
-        updateResults();
-
-
-        mapStatus.textContent =
-            "Position sélectionnée";
-
-    }
-);
-
-
-
-/* ================================================================
-   CERCLE
-================================================================ */
-excludeRadarInput.addEventListener("change", function() {
-    updateResults();
+// ══════════════════════════════════════════════
+// MAP
+// ══════════════════════════════════════════════
+const map = L.map('map', {
+  center: [30, 0], zoom: 3,
+  zoomControl: false, minZoom: 2, maxZoom: 12,
+  worldCopyJump: true,
+  preferCanvas: true
 });
-    
-function updateCircle() {
 
-    if (
-        selectedLatitude === null ||
-        selectedLongitude === null
-    ) {
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_nolabels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
+  attribution: '© OpenStreetMap contributors © CARTO',
+  subdomains: 'abcd', maxZoom: 19
+}).addTo(map);
 
-        return;
+// Labels pane on top
+const labelsPane = map.createPane('labels');
+labelsPane.style.zIndex = 650;
+labelsPane.style.pointerEvents = 'none';
+L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.png?key=cb1_2bs7_1_c5f6d912b5c6cba3983991dd', {
+  attribution: '', subdomains: 'abcd', maxZoom: 19, pane: 'labels'
+}).addTo(map);
 
+// ══════════════════════════════════════════════
+// MODELS — listes par défaut = modèles réellement produits par
+// gen_points_mer.c (voir MODEL_DEFS côté C). Remplacées automatiquement
+// si l'en-tête du fichier de données réelles indique un nombre différent
+// de modèles par catégorie (rebuildModelListsFromHeader).
+// ══════════════════════════════════════════════
+let ATMO = [
+  { id:'arome',        name:'AROME',              sub:'Météo-France · 1.3 km' },
+  { id:'arome-hd',      name:'AROME-HD',           sub:'Météo-France HD' },
+  { id:'arome-om',      name:'AROME-OM-Antilles',  sub:'Météo-France Outre-mer' },
+  { id:'arpege-eu',     name:'ARPEGE-Europe',      sub:'Météo-France · 10 km' },
+  { id:'arpege-globe',  name:'ARPEGE-Globe',       sub:'Météo-France · global' },
+  { id:'icon-eu',       name:'ICON-EU',            sub:'DWD · 13 km' },
+  { id:'gfs',           name:'GFS',                sub:'NCEP · 13 km' },
+];
+
+let OCEAN = [
+  // Aucun modèle océanique réel disponible pour l'instant (pas de GRIB
+  // SST/courants fourni). Ajouter ici quand une source réelle existera.
+];
+
+let WAVE = [
+  { id:'mfwam', name:'MFWAM', sub:'Météo-France · vagues' },
+];
+
+const MODEL_PALETTE = ['#4a90d9','#e07b39','#b05bdd','#27ae60','#e74c3c','#f39c12','#1abc9c','#e91e8c','#8b5cf6','#06b6d4'];
+let MODEL_COLORS = {};
+function rebuildModelColors() {
+  MODEL_COLORS = {};
+  [...ATMO, ...OCEAN, ...WAVE].forEach((m, i) => { MODEL_COLORS[m.name] = MODEL_PALETTE[i % MODEL_PALETTE.length]; });
+}
+rebuildModelColors();
+
+// Si le fichier de données réelles annonce un nombre de modèles différent
+// des listes par défaut ci-dessus (ex. nouveaux dossiers GRIB ajoutés),
+// on tronque/complète pour que l'index des scores reste aligné. On ne
+// devine pas de nouveaux noms : les modèles en trop reçoivent un nom
+// générique "Modèle N".
+function rebuildModelListsFromHeader() {
+  if (!realHeader) return;
+  function adjust(list, n, prefix) {
+    const out = list.slice(0, n);
+    while (out.length < n) out.push({ id: prefix+out.length, name: 'Modèle '+(out.length+1), sub: '' });
+    return out;
+  }
+  ATMO = adjust(ATMO, realHeader.nAtmo, 'atmo');
+  OCEAN = adjust(OCEAN, realHeader.nOcean, 'ocean');
+  WAVE = adjust(WAVE, realHeader.nWave, 'wave');
+  rebuildModelColors();
+  rebuildLegend();
+}
+
+function rebuildLegend() {
+  const li = document.getElementById('legend-items');
+  li.innerHTML = '';
+  Object.entries(MODEL_COLORS).forEach(([n,c]) => {
+    li.innerHTML += `<div class="li"><div class="ld" style="background:${c}"></div><span>${n}</span></div>`;
+  });
+}
+rebuildLegend();
+
+// ══════════════════════════════════════════════
+// SCORES — utilise les données réelles quand disponibles pour le point
+// exact (lat,lon), sinon retombe sur le générateur pseudo-aléatoire
+// (mode démonstration, avant import/génération d'un fichier réel).
+// ══════════════════════════════════════════════
+function srand(lat, lon, mi, si) {
+  const v = Math.sin(lat*127.1 + lon*311.7 + mi*74.3 + si*19.1) * 43758.5453;
+  const r = v - Math.floor(v);
+  if (r < 0.12) return null;
+  return Math.round((r * 3.5 + 1.5) * 10) / 10;
+}
+
+// Renvoie le tableau de scores par colonne (type de capteur) pour un
+// modèle donné à (lat,lon). Si un enregistrement réel existe pour ce
+// point : utilise le detail reel quand colNames est fourni (types
+// correspondant a REAL_SENSOR_TYPE_NAMES), sinon "—" partout (aucune
+// invention de detail par type quand on ne l'a pas, ex. vagues/ocean).
+// Si aucun enregistrement réel n'existe (mode démonstration complet,
+// avant toute génération/import de données réelles) : scores fictifs.
+function perColumnScores(lat, lon, modelGlobalIndex, mi, nsrc, colNames) {
+  const rec = getRealRecord(lat, lon);
+  if (rec) {
+    if (colNames) {
+      const row = rec.typeScores[modelGlobalIndex];
+      return colNames.map(name => {
+        const idx = REAL_SENSOR_TYPE_NAMES.indexOf(name);
+        if (idx < 0 || !row) return null;
+        const v = row[idx];
+        return Number.isFinite(v) ? Math.round(v*10)/10 : null;
+      });
+    }
+    return Array.from({length:nsrc}, () => null);
+  }
+  if (realDataLoaded) {
+    // Des données réelles sont chargées (fichier creux), mais ce point
+    // précis n'a aucune donnée à proximité : honnête, pas de repli fictif.
+    return Array.from({length:nsrc}, () => null);
+  }
+  // Aucune donnée réelle chargée du tout (mode démonstration complet).
+  return Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si));
+}
+
+function globalScoreForModel(lat, lon, modelGlobalIndex, nsrc, mi) {
+  const rec = getRealRecord(lat, lon);
+  if (rec) {
+    // Le point a des données réelles : un modèle sans lien réel doit
+    // rester "sans donnée" (NaN), jamais comblé par un chiffre fictif.
+    const v = rec.scores[modelGlobalIndex];
+    return Number.isFinite(v) ? v : NaN;
+  }
+  if (realDataLoaded) return NaN; // point réellement sans donnée (fichier creux)
+  // Aucune donnée réelle chargée du tout (mode démonstration complet).
+  const sc = Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si));
+  return avg(sc);
+}
+
+function avg(scores) {
+  const v = scores.filter(s => s !== null && s !== undefined && Number.isFinite(s));
+  return v.length ? v.reduce((a,b)=>a+b,0)/v.length : 0;
+}
+
+function tier(v) {
+  if (v === null) return 0;
+  if (v >= 4.5) return 5; if (v >= 3.5) return 4;
+  if (v >= 2.5) return 3; if (v >= 1.5) return 2; return 1;
+}
+
+function scoreColor(v) {
+  if (v >= 4.5) return '#4ade80'; if (v >= 3.5) return '#86efac';
+  if (v >= 2.5) return '#fbbf24'; if (v >= 1.5) return '#f97316';
+  return '#f87171';
+}
+
+function cellH(v) {
+  if (v === null || v === undefined || !Number.isFinite(v)) return '<span class="nd">—</span>';
+  const t = tier(v), pct = (v/5*100).toFixed(0);
+  return `<div class="sc t${t}"><div class="sc-bar"><div class="sc-fill" style="width:${pct}%"></div></div><span class="sc-v">${v.toFixed(1)}</span></div>`;
+}
+
+// offsetOf : index de départ d'une categorie dans l'ordre global des
+// modèles (ATMO puis OCEAN puis WAVE), pour retrouver le bon indice dans
+// rec.scores / rec.typeScores.
+function categoryOffset(cat) {
+  if (cat === 'atmo') return 0;
+  if (cat === 'ocean') return ATMO.length;
+  return ATMO.length + OCEAN.length;
+}
+
+function bestModel(models, nsrc, lat, lon, cat) {
+  const offset = categoryOffset(cat);
+  let best = { name:'', a:-1 };
+  models.forEach((m,mi) => {
+    const a = globalScoreForModel(lat, lon, offset+mi, nsrc, mi);
+    if (a > best.a) best = { name:m.name, a };
+  });
+  return best.name;
+}
+
+function bestScore(models, nsrc, lat, lon, cat) {
+  const offset = categoryOffset(cat);
+  let best = -1;
+  models.forEach((m,mi) => {
+    const a = globalScoreForModel(lat, lon, offset+mi, nsrc, mi);
+    if (a > best) best = a;
+  });
+  return best;
+}
+
+function buildTable(tbodyId, models, nsrc, lat, lon, cat, colNames) {
+  const body = document.getElementById(tbodyId);
+  body.innerHTML = '';
+  const offset = categoryOffset(cat);
+
+  if (models.length === 0) return null;
+
+  const rows = models.map((m,mi) => {
+    const sc = perColumnScores(lat, lon, offset+mi, mi, nsrc, colNames);
+    const a = globalScoreForModel(lat, lon, offset+mi, nsrc, mi);
+    return { m, sc, a };
+  }).sort((a,b) => {
+    const af = Number.isFinite(a.a), bf = Number.isFinite(b.a);
+    if (af && bf) return b.a - a.a;
+    if (af) return -1;   // les modèles avec donnée passent avant ceux sans donnée
+    if (bf) return 1;
+    return 0;
+  });
+
+  const firstReal = rows.findIndex(r => Number.isFinite(r.a));
+
+  rows.forEach((row,ri) => {
+    const tr = document.createElement('tr');
+    if (ri===firstReal) tr.classList.add('brow');
+    const cells = row.sc.map(v=>`<td>${cellH(v)}</td>`).join('');
+    const tag = ri===firstReal ? '<span class="btag">TOP</span>' : '';
+    const totCell = Number.isFinite(row.a)
+      ? `<td class="tot" style="color:${scoreColor(row.a)}">${row.a.toFixed(2)}</td>`
+      : `<td class="tot"><span class="nd">—</span></td>`;
+    tr.innerHTML = `
+      <td><div class="mn">${row.m.name}${tag}</div><div class="ms">${row.m.sub}</div></td>
+      ${cells}
+      ${totCell}`;
+    body.appendChild(tr);
+  });
+  return firstReal >= 0 ? rows[firstReal].m.name : null;
+}
+
+// ══════════════════════════════════════════════
+// LAND MASK (approximate bounding boxes)
+// ══════════════════════════════════════════════
+const LAND = [
+  [24,72,-140,-52],[14,25,-92,-70],[-55,12,-82,-34],
+  [36,72,-10,35],[35,40,35,42],[-35,38,-18,52],
+  [10,78,40,148],[-44,-10,113,155],[60,85,-55,-14],
+  [-90,-60,-180,180],[54,72,-172,-130],[-10,7,95,141],
+  [30,46,129,146],[-47,-34,166,178],[-26,-12,43,51],
+  [63,67,-25,-13],[5,20,116,127],[6,10,79,82],
+  [22,27,88,92],[51,59,-4,2],[51,60,-10,-6],
+  [56,72,4,32],[60,72,24,32],
+];
+
+function isOcean(lat, lon) {
+  while (lon > 180) lon -= 360;
+  while (lon < -180) lon += 360;
+  if (lat < -78 || lat > 80) return false;
+  for (const [la,lb,loa,lob] of LAND) {
+    if (lat>=la && lat<=lb && lon>=loa && lon<=lob) return false;
+  }
+  return true;
+}
+
+// ══════════════════════════════════════════════
+// POINTS RENDERING — grille sur vrais points du fichier
+// ══════════════════════════════════════════════
+async function loadMarineData() {
+  try {
+    const response = await fetch('points_mer.bin');
+
+    if (!response.ok) {
+      throw new Error("Fichier introuvable");
     }
 
+    const buffer = await response.arrayBuffer();
 
-    /*
-     * Le slider est en milles nautiques.
-     */
+    allPoints = new Float32Array(buffer);
 
-    const radiusNm =
-        Number(radiusSlider.value);
+    console.log(
+      "Succès : " +
+      (allPoints.length / 2).toLocaleString() +
+      " points chargés."
+    );
 
+    buildIndex();
 
-    /*
-     * Leaflet attend des mètres.
-     *
-     * 1 Nm = 1 852 mètres.
-     */
+  } catch (err) {
+    console.error("Erreur de chargement : ", err);
 
-    const radiusMeters =
-        radiusNm * 1852;
+    alert(
+      "Impossible de charger les points.\n\n" +
+      err.message
+    );
+  }
+}
 
+async function importPointsFile(input) {
+  const file = input.files[0];
+  if (!file) return;
 
-    /*
-     * Supprimer l'ancien cercle.
-     */
+  try {
+    console.log("Import du fichier :", file.name);
+    console.log("Taille :", file.size, "octets");
 
-    if (searchCircle) {
+    // Lire le fichier
+    const buffer = await file.arrayBuffer();
 
-        map.removeLayer(
-            searchCircle
+    // Vérifier que la taille est compatible avec des Float32
+    if (buffer.byteLength % 4 !== 0) {
+      throw new Error("Le fichier n'est pas compatible avec un tableau Float32.");
+    }
+
+    const newPoints = new Float32Array(buffer);
+
+    // Vérification simple
+    if (newPoints.length < 2) {
+      throw new Error("Le fichier ne contient pas suffisamment de données.");
+    }
+
+    if (newPoints.length % 2 !== 0) {
+      throw new Error("Le nombre de valeurs doit être pair (lat/lon).");
+    }
+
+    // Vérifier quelques coordonnées
+    for (let i = 0; i < Math.min(newPoints.length, 100); i += 2) {
+      const lat = newPoints[i];
+      const lon = newPoints[i + 1];
+
+      if (
+        !Number.isFinite(lat) ||
+        !Number.isFinite(lon) ||
+        lat < -90 || lat > 90 ||
+        lon < -180 || lon > 180
+      ) {
+        throw new Error(
+          `Coordonnées invalides détectées : ${lat}, ${lon}`
         );
-
+      }
     }
 
+    // Remplacer les points actuels
+    allPoints = newPoints;
 
-    /*
-     * Nouveau cercle.
-     */
+    // Réinitialiser l'index
+    indexReady = false;
 
-    searchCircle =
-        L.circle(
+    // Vider l'ancien cache
+    Object.keys(gridCache).forEach(k => delete gridCache[k]);
 
-            [
-                selectedLatitude,
-                selectedLongitude
-            ],
+    // Reconstruire l'index
+    buildIndex();
 
-            {
+    // Informations utilisateur
+    const count = allPoints.length / 2;
 
-                radius: radiusMeters,
+    console.log(
+      `Import réussi : ${count.toLocaleString()} points`
+    );
 
-                color: "#2563eb",
+    // Bouton visuellement validé
+    const btn = document.getElementById('btn-import');
+    btn.classList.add('ok');
 
-                weight: 1.5,
+    // Afficher le nombre de points
+    document.getElementById('pt-info').textContent =
+      count.toLocaleString() + ' pts';
 
-                fillColor: "#2563eb",
+    setTimeout(() => {
+      btn.classList.remove('ok');
+    }, 1500);
 
-                fillOpacity: 0.08
+  } catch (err) {
+    console.error("Erreur lors de l'import :", err);
 
+    alert(
+      "Impossible d'importer ce fichier.\n\n" +
+      err.message +
+      "\n\nLe fichier doit être un .bin contenant des coordonnées Float32 :\n" +
+      "latitude, longitude, latitude, longitude..."
+    );
+  }
+
+  // Permet de réimporter le même fichier ensuite
+  input.value = '';
+}
+
+// Import manuel du fichier de scores réels (points_mer_data.bin), en
+// plus du chargement automatique au démarrage.
+async function importDataFile(input) {
+  const file = input.files[0];
+  if (!file) return;
+  try {
+    const buffer = await file.arrayBuffer();
+    const parsed = parseDataBuffer(buffer);
+    realDataByKey = parsed.map;
+    realHeader = parsed;
+    setDataBadge(true);
+    rebuildModelListsFromHeader();
+
+    const btn = document.getElementById('btn-import-data');
+    btn.classList.add('ok');
+    setTimeout(() => btn.classList.remove('ok'), 1500);
+
+    if (selectedLatLon) onPointClick(selectedLatLon[0], selectedLatLon[1]);
+  } catch (err) {
+    console.error("Erreur lors de l'import des scores :", err);
+    alert("Impossible d'importer ce fichier de scores.\n\n" + err.message);
+  }
+  input.value = '';
+}
+
+  
+const pointsLayer = L.layerGroup().addTo(map);
+const linesLayer  = L.layerGroup().addTo(map);
+let renderTimer   = null;
+let colorByScore  = false;
+let selectedMarker = null;
+let selectedLatLon = null;
+
+// ── Index spatial : une cellule de grille = un point (le plus proche du nœud)
+const gridCache = {};
+let indexReady = false;
+
+function buildIndex() {
+  if (!allPoints) return;
+
+  const workerCode = `
+    self.onmessage = function(e) {
+      const pts = e.data;
+      const steps = [0.1, 0.25, 0.5, 1.0, 2.25, 4.5, 9.0];
+      const result = {};
+
+      steps.forEach(step => {
+        const cellMap = new Map();
+
+        for (let i = 0; i < pts.length; i += 2) {
+          const lat = pts[i];
+          const lon = pts[i + 1];
+
+          const iLat = Math.round(lat / step);
+          const iLon = Math.round(lon / step);
+
+          const key = iLat * 100000 + iLon;
+
+          if (!cellMap.has(key)) {
+            cellMap.set(key, i);
+          } else {
+            const pi = cellMap.get(key);
+
+            const dPrev =
+              Math.abs(pts[pi] - iLat * step) +
+              Math.abs(pts[pi + 1] - iLon * step);
+
+            const dCurr =
+              Math.abs(lat - iLat * step) +
+              Math.abs(lon - iLon * step);
+
+            if (dCurr < dPrev) {
+              cellMap.set(key, i);
             }
-
-        ).addTo(map);
-
-}
-
-
-
-/* ================================================================
-   DISTANCE HAVERSINE
-================================================================ */
-
-/*
- * Retourne la distance entre deux coordonnées
- * en milles nautiques.
- */
-
-function distanceNm(
-    lat1,
-    lon1,
-    lat2,
-    lon2
-) {
-
-    const R =
-        CONFIG.earthRadiusNm;
-
-
-    const dLat =
-        (
-            lat2 - lat1
-        ) *
-        Math.PI /
-        180;
-
-
-    const dLon =
-        (
-            lon2 - lon1
-        ) *
-        Math.PI /
-        180;
-
-
-    const lat1Rad =
-        lat1 *
-        Math.PI /
-        180;
-
-
-    const lat2Rad =
-        lat2 *
-        Math.PI /
-        180;
-
-
-    const a =
-
-        Math.sin(dLat / 2) ** 2
-
-        +
-
-        Math.cos(lat1Rad) *
-        Math.cos(lat2Rad) *
-        Math.sin(dLon / 2) ** 2;
-
-
-    const c =
-
-        2 *
-        Math.atan2(
-
-            Math.sqrt(a),
-
-            Math.sqrt(
-                1 - a
-            )
-
-        );
-
-
-    return R * c;
-
-}
-
-
-
-/* ================================================================
-   IMPORT CSV
-================================================================ */
-
-fileInput.addEventListener(
-    "change",
-    function () {
-
-        const file =
-            this.files[0];
-
-
-        if (!file) {
-
-            return;
-
+          }
         }
 
+        const pairs = [];
 
-        fileInfo.style.display =
-            "block";
+        cellMap.forEach(i => {
+          pairs.push([pts[i], pts[i + 1]]);
+        });
 
-
-        fileInfo.textContent =
-            "Lecture de " +
-            file.name +
-            "…";
-
-
-        document.body.classList.add(
-            "loading"
+        pairs.sort((a, b) =>
+          a[0] !== b[0]
+            ? a[0] - b[0]
+            : a[1] - b[1]
         );
 
-
-        Papa.parse(
-
-            file,
-
-            {
-
-                header: true,
-
-                skipEmptyLines: true,
-
-                dynamicTyping: false,
-
-
-                complete:
-                    function (results) {
-
-                        processCSV(
-                            results,
-                            file,
-                            false
-                        );
-
-                        document.body.classList.remove(
-                            "loading"
-                        );
-
-                    },
-
-
-                error:
-                    function (error) {
-
-                        console.error(
-                            error
-                        );
-
-                        fileInfo.textContent =
-                            "Erreur lors de la lecture du fichier.";
-
-                        document.body.classList.remove(
-                            "loading"
-                        );
-
-                    }
-
-            }
-
-        );
-
-    }
-);
-
-
-/* ================================================================
-   TRAITEMENT CSV
-================================================================ */
-
-function processCSV(
-    results,
-    file = null,
-    automatic = false
-) {
-
-    /*
-     * Vérification des colonnes.
-     */
-
-    const requiredColumns = [
-
-        "source",
-        "provider",
-        "station_id",
-        "lat",
-        "lon",
-        "time_utc",
-        "variable",
-        "value",
-        "unit"
-
-    ];
-
-
-    const fields =
-        results.meta.fields || [];
-
-
-    const missing =
-        requiredColumns.filter(
-            column =>
-                !fields.includes(column)
-        );
-
-
-    if (missing.length > 0) {
-
-        fileInfo.textContent =
-            "CSV incompatible. Colonnes manquantes : " +
-            missing.join(", ");
-
-        document.body.classList.remove(
-            "loading"
-        );
-
-        return;
-
-    }
-
-
-    /*
-     * Conversion et nettoyage.
-     */
-
-    weatherData =
-        results.data
-
-            .map(
-                row => ({
-
-                    source:
-                        String(
-                            row.source || ""
-                        ).trim(),
-
-                    provider:
-                        String(
-                            row.provider || ""
-                        ).trim(),
-
-                    station_id:
-                        String(
-                            row.station_id || ""
-                        ).trim(),
-
-                    lat:
-                        Number(row.lat),
-
-                    lon:
-                        Number(row.lon),
-
-                    time_utc:
-                        String(
-                            row.time_utc || ""
-                        ).trim(),
-
-                    variable:
-                        String(
-                            row.variable || ""
-                        ).trim(),
-
-                    value:
-                        row.value === ""
-                            ? null
-                            : Number(row.value),
-
-                    unit:
-                        String(
-                            row.unit || ""
-                        ).trim()
-
-                })
-
-            )
-
-            /*
-             * On garde uniquement
-             * les coordonnées valides.
-             */
-
-            .filter(
-                row =>
-
-                    Number.isFinite(
-                        row.lat
-                    )
-
-                    &&
-
-                    Number.isFinite(
-                        row.lon
-                    )
-
-            );
-
-
-    /*
-     * Statistiques du fichier.
-     */
-
-updateFileInfo(
-    file,
-    weatherData,
-    automatic
-);
-
-
-    /*
-     * Créer les filtres de sources.
-     */
-
-    createSourceFilters();
-
-
-    document.body.classList.remove(
-        "loading"
+        const arr = new Float32Array(pairs.length * 2);
+
+        pairs.forEach(([la, lo], k) => {
+          arr[k * 2] = la;
+          arr[k * 2 + 1] = lo;
+        });
+
+        result[step] = arr;
+      });
+
+      self.postMessage(
+        result,
+        Object.values(result).map(a => a.buffer)
+      );
+    };
+  `;
+
+  const blob = new Blob(
+    [workerCode],
+    { type: 'application/javascript' }
+  );
+
+  const worker = new Worker(
+    URL.createObjectURL(blob)
+  );
+
+  // IMPORTANT :
+  // on envoie une copie au worker afin de conserver
+  // allPoints disponible dans la page
+  const workerPoints = new Float32Array(allPoints);
+
+  worker.postMessage(
+    workerPoints,
+    [workerPoints.buffer]
+  );
+
+  worker.onmessage = function(e) {
+    Object.assign(gridCache, e.data);
+
+    indexReady = true;
+
+    console.log(
+      'Index prêt :',
+      Object.entries(gridCache)
+        .map(([s, a]) => `${s}°:${a.length / 2}pts`)
+        .join(' ')
     );
 
+    worker.terminate();
 
-    mapStatus.textContent =
-        weatherData.length.toLocaleString(
-            "fr-FR"
-        ) +
-        " données chargées — cliquez sur la carte";
-
-
-    /*
-     * Si une position était déjà sélectionnée,
-     * on actualise les résultats.
-     */
-
-    if (
-        selectedLatitude !== null &&
-        selectedLongitude !== null
-    ) {
-
-        updateResults();
-
-    }
-
+    renderPoints();
+  };
+}
+function gridDeg(zoom) {
+  if (zoom <= 2) return 9.0;
+  if (zoom <= 3) return 4.5;
+  if (zoom <= 4) return 2.25;
+  if (zoom <= 5) return 1.0;
+  if (zoom <= 6) return 0.5;
+  if (zoom <= 7) return 0.25;
+  return 0.1;
 }
 
 
+function markerR(zoom) {
+  if (zoom <= 3) return 2.5;
+  if (zoom <= 5) return 3.5;
+  if (zoom <= 7) return 4.5;
+  return 5.5;
+}
 
-/* ================================================================
-   INFORMATIONS FICHIER
-================================================================ */
+function renderPoints() {
+  if (!allPoints || !indexReady) return;
 
-function updateFileInfo(
-    file,
-    data,
-    automatic = false
-) {
+  pointsLayer.clearLayers();
+  linesLayer.clearLayers();
+  selectedMarker = null;
 
-    const sources =
-        new Set(
-            data.map(
-                row => row.source
-            )
-        );
+  const zoom   = map.getZoom();
+  const bounds = map.getBounds();
+  const r      = markerR(zoom);
+  const step   = gridDeg(zoom);
+  const arr    = gridCache[step];
 
+  const myRenderer = L.canvas({ padding: 0.5 });
+  const zonePoints = {};
+  let count = 0;
 
-    const variables =
-        new Set(
-            data.map(
-                row => row.variable
-            )
-        );
+  const south = bounds.getSouth();
+  const north = bounds.getNorth();
+  const west  = bounds.getWest();
+  const east  = bounds.getEast();
 
-
-    /*
-     * Trouver la date la plus récente
-     * réellement présente dans le fichier.
-     */
-
-    const latestDate =
-        getLatestDate(data);
-
-
-    /*
-     * Nom du fichier
-     */
-
-    const fileName =
-        automatic
-            ? "latest.csv"
-            : file.name;
-
-
-    /*
-     * Bloc principal
-     */
-
-    const dataSource =
-        document.getElementById(
-            "dataSource"
-        );
-
-
-    const status =
-        dataSource.querySelector(
-            ".data-source-status"
-        );
-
-
-    const name =
-        document.getElementById(
-            "dataSourceName"
-        );
-
-
-    const date =
-        document.getElementById(
-            "dataSourceDate"
-        );
-
-
-    /*
-     * Style selon la provenance.
-     */
-
-    dataSource.classList.remove(
-        "loading",
-        "error",
-        "manual"
-    );
-
-
-    if (automatic) {
-
-        status.textContent =
-            "DONNÉES AUTOMATIQUEMENT CHARGÉES";
-
-        name.textContent =
-            "Source : latest.csv";
-
+  if (arr) {
+    // Recherche binaire pour la borne inférieure de lat
+    let lo = 0, hi = arr.length / 2 - 1;
+    while (lo < hi) {
+      const mid = (lo + hi) >> 1;
+      if (arr[mid*2] < south) lo = mid + 1; else hi = mid;
     }
-
-    else {
-
-        dataSource.classList.add(
-            "manual"
-        );
-
-        status.textContent =
-            "FICHIER IMPORTÉ MANUELLEMENT";
-
-        name.textContent =
-            "Source : " +
-            fileName;
-
+    for (let k = lo; k < arr.length / 2; k++) {
+      const lat = arr[k*2];
+      const lon = arr[k*2+1];
+      if (lat > north) break;                     // trié → on peut stopper
+      if (lon < west || lon > east) continue;
+      drawPoint(lat, lon, r, myRenderer, zonePoints, zoom);
+      count++;
     }
-
-
-    /*
-     * Date très visible.
-     */
-
-    if (latestDate) {
-
-        date.textContent =
-            formatLatestDate(
-                latestDate
-            );
-
+  } else {
+    // Zoom >= 8 : fallback sur tous les points dans la vue
+    for (let i = 0; i < allPoints.length; i += 2) {
+      const lat = allPoints[i];
+      const lon = allPoints[i + 1];
+      if (lat < south || lat > north || lon < west || lon > east) continue;
+      drawPoint(lat, lon, r, myRenderer, zonePoints, zoom);
+      count++;
+      if (count >= 3000) break;
     }
+  }
 
-    else {
+  if (zoom >= 4 && zoom <= 7 && !colorByScore) drawModelConnections(zonePoints);
+  document.getElementById('pt-info').textContent = count + ' pts';
+}
 
-        date.textContent =
-            "Date inconnue";
+function drawPoint(lat, lon, r, renderer, zonePoints, zoom) {
+  const bm = bestModel(ATMO, 7, lat, lon, 'atmo');
+  const color = colorByScore
+    ? scoreColor(bestScore(ATMO, 7, lat, lon, 'atmo'))
+    : (MODEL_COLORS[bm] || '#4a90d9');
 
+  const m = L.circleMarker([lat, lon], {
+    radius: r, fillColor: color, fillOpacity: 0.82,
+    color: 'rgba(0,0,0,0.4)', weight: 0.4,
+    renderer, interactive: true
+  });
+  m.on('click', (e) => {
+    L.DomEvent.stopPropagation(e);
+    selectPoint(lat, lon, m, e.originalEvent);
+  });
+  pointsLayer.addLayer(m);
+
+  if (zoom >= 4 && zoom <= 7 && !colorByScore) {
+    if (!zonePoints[bm]) zonePoints[bm] = [];
+    if (zonePoints[bm].length < 100) zonePoints[bm].push([lat, lon]);
+  }
+}
+
+// ── Sélection d'un point ──
+function selectPoint(lat, lon, marker, mouseEvent) {
+  // Remettre l'ancien marqueur à la normale
+  if (selectedMarker) {
+    selectedMarker.setStyle({ color: 'rgba(0,0,0,0.4)', weight: 0.4, fillOpacity: 0.82 });
+  }
+  selectedMarker = marker;
+  selectedLatLon = [lat, lon];
+  // Mettre en surbrillance
+  marker.setStyle({ color: '#ffffff', weight: 2.5, fillOpacity: 1 });
+
+  // Étoile ancrée sur la position carte (pas sur la souris)
+  showStarPopup(lat, lon);
+
+  // Panneau
+  onPointClick(lat, lon);
+}
+
+// ── Connexions inter-points ──
+function drawModelConnections(zonePoints) {
+  Object.entries(zonePoints).forEach(([modelName, pts]) => {
+    if (pts.length < 3) return;
+    const color = MODEL_COLORS[modelName] || '#4a90d9';
+    for (let i = 0; i < pts.length; i++) {
+      let minD = Infinity, minJ = -1;
+      for (let j = 0; j < pts.length; j++) {
+        if (i === j) continue;
+        const d = Math.hypot(pts[i][0]-pts[j][0], pts[i][1]-pts[j][1]);
+        if (d < minD && d < 6) { minD = d; minJ = j; }
+      }
+      if (minJ >= 0) {
+        linesLayer.addLayer(L.polyline([pts[i], pts[minJ]], {
+          color, weight: 1, opacity: 0.22, dashArray: '4 5', interactive: false
+        }));
+      }
     }
-
-
-    /*
-     * Informations complémentaires.
-     */
-
-    fileInfo.style.display =
-        "block";
-
-
-    fileInfo.innerHTML =
-
-        "<strong>" +
-        escapeHTML(fileName) +
-        "</strong><br>" +
-
-        data.length.toLocaleString(
-            "fr-FR"
-        ) +
-
-        " lignes · " +
-
-        sources.size +
-
-        " sources · " +
-
-        variables.size +
-
-        " variables";
-
+  });
 }
 
-/* ================================================================
-   DERNIÈRE DATE DES DONNÉES
-================================================================ */
-
-function getLatestDate(data) {
-
-    let latest = null;
-
-
-    data.forEach(
-        row => {
-
-            if (!row.time_utc) {
-
-                return;
-
-            }
-
-
-            const date =
-                new Date(
-                    row.time_utc
-                );
-
-
-            if (
-                Number.isNaN(
-                    date.getTime()
-                )
-            ) {
-
-                return;
-
-            }
-
-
-            if (
-                latest === null ||
-                date > latest
-            ) {
-
-                latest = date;
-
-            }
-
-        }
-    );
-
-
-    return latest;
-
+function scheduleRender() {
+  clearTimeout(renderTimer);
+  renderTimer = setTimeout(renderPoints, 200);
 }
 
+map.on('zoomend', () => { updateZoomLevel(); scheduleRender(); });
+map.on('moveend', scheduleRender);
 
+// ══════════════════════════════════════════════
+// STAR POPUP — branches vers vraies positions géo des capteurs
+// ══════════════════════════════════════════════
 
-/* ================================================================
-   AFFICHAGE DE LA DATE
-================================================================ */
-
-function formatLatestDate(
-    date
-) {
-
-    return date.toLocaleString(
-
-        "fr-FR",
-
-        {
-
-            day: "2-digit",
-
-            month: "2-digit",
-
-            year: "numeric",
-
-            hour: "2-digit",
-
-            minute: "2-digit",
-
-            timeZone: "UTC"
-
-        }
-
-    ) + " UTC";
-
+// Types de capteurs avec leur icône et rayon de recherche max (degrés)
+// (rayon utilisé seulement pour le mode démonstration ; en mode réel, la
+// position exacte du capteur vient du fichier de données)
+const SENSOR_TYPES = [
+  { type: 'Synop',      icon: '🏠', maxR: 3.0  },
+  { type: 'Bateau',     icon: '⛵', maxR: 5.0  },
+  { type: 'Bouée',      icon: '🔵', maxR: 4.0  },
+  { type: 'ASCAT',      icon: '🛸', maxR: 6.0  },
+  { type: 'Radiosonde', icon: '🎈', maxR: 4.0  },
+  { type: 'Radar',      icon: '📻', maxR: 3.5  },
+  { type: 'Sat. IR',    icon: '🌡️', maxR: 7.0  },
+];
+function iconFor(typeName) {
+  const found = SENSOR_TYPES.find(s => s.type === typeName);
+  return found ? found.icon : '❓';
 }
 
-    /* ================================================================
-   ÉTAT : CHARGEMENT
-================================================================ */
-
-function setDataSourceLoading() {
-
-    const box =
-        document.getElementById(
-            "dataSource"
-        );
-
-
-    const status =
-        box.querySelector(
-            ".data-source-status"
-        );
-
-
-    const name =
-        document.getElementById(
-            "dataSourceName"
-        );
-
-
-    const date =
-        document.getElementById(
-            "dataSourceDate"
-        );
-
-
-    box.classList.remove(
-        "error",
-        "manual"
-    );
-
-
-    box.classList.add(
-        "loading"
-    );
-
-
-    status.textContent =
-        "CHARGEMENT AUTOMATIQUE";
-
-
-    name.textContent =
-        "Recherche de latest.csv";
-
-
-    date.textContent =
-        "—";
-
-}
-
-
-
-/* ================================================================
-   ÉTAT : ERREUR
-================================================================ */
-
-function setDataSourceError() {
-
-    const box =
-        document.getElementById(
-            "dataSource"
-        );
-
-
-    const status =
-        box.querySelector(
-            ".data-source-status"
-        );
-
-
-    const name =
-        document.getElementById(
-            "dataSourceName"
-        );
-
-
-    const date =
-        document.getElementById(
-            "dataSourceDate"
-        );
-
-
-    box.classList.remove(
-        "loading",
-        "manual"
-    );
-
-
-    box.classList.add(
-        "error"
-    );
-
-
-    status.textContent =
-        "latest.csv INTROUVABLE";
-
-
-    name.textContent =
-        "Import manuel disponible";
-
-
-    date.textContent =
-        "—";
-
-}
-/* ================================================================
-   SOURCES
-================================================================ */
-
-function createSourceFilters() {
-
-    const sources =
-        [
-            ...new Set(
-                weatherData
-                    .map(
-                        row => row.source
-                    )
-                    .filter(Boolean)
-            )
-        ]
-        .sort();
-
-
-    sourceList.innerHTML = "";
-
-
-    /*
-     * Bouton ALL
-     */
-
-    const allButton =
-        document.createElement(
-            "button"
-        );
-
-
-    allButton.className =
-        "source-button active";
-
-
-    allButton.textContent =
-        "Toutes";
-
-
-    allButton.onclick =
-        function () {
-
-            activeSource =
-                "ALL";
-
-            updateSourceButtons();
-
-            updateResults();
-
-        };
-
-
-    sourceList.appendChild(
-        allButton
-    );
-
-
-    /*
-     * Sources individuelles
-     */
-
-    sources.forEach(
-        source => {
-
-            const button =
-                document.createElement(
-                    "button"
-                );
-
-
-            button.className =
-                "source-button";
-
-
-            button.textContent =
-                source;
-
-
-            button.onclick =
-                function () {
-
-                    activeSource =
-                        source;
-
-                    updateSourceButtons();
-
-                    updateResults();
-
-                };
-
-
-            sourceList.appendChild(
-                button
-            );
-
-        }
-    );
-
-
-    sourceSection.style.display =
-        "block";
-
-}
-
-
-
-/* ================================================================
-   ÉTAT DES BOUTONS SOURCES
-================================================================ */
-
-function updateSourceButtons() {
-
-    const buttons =
-        sourceList.querySelectorAll(
-            ".source-button"
-        );
-
-
-    buttons.forEach(
-        button => {
-
-            if (
-                activeSource === "ALL"
-                    &&
-                button.textContent === "Toutes"
-            ) {
-
-                button.classList.add(
-                    "active"
-                );
-
-                return;
-
-            }
-
-
-            if (
-                activeSource ===
-                button.textContent
-            ) {
-
-                button.classList.add(
-                    "active"
-                );
-
-            } else {
-
-                button.classList.remove(
-                    "active"
-                );
-
-            }
-
-        }
-    );
-
-}
-
-
-
-/* ================================================================
-   RECHERCHE DES DONNÉES
-================================================================ */
-
-function getDataInRadius() {
-    if (selectedLatitude === null || selectedLongitude === null) {
-        return [];
+// Génère des capteurs pseudo-aléatoires réalistes autour d'un point
+// (mode démonstration uniquement)
+function getFakeSensorsNear(lat, lon) {
+  const sensors = [];
+  const seed = (lat * 73.1 + lon * 41.7);
+
+  SENSOR_TYPES.forEach((st, ti) => {
+    const h1 = Math.sin(seed + ti * 17.3) * 43758.5453;
+    const r1 = h1 - Math.floor(h1);
+    const maxCount = st.type === 'Bateau' ? 4 : st.type === 'Bouée' ? 3 : 2;
+    const count = r1 < 0.35 ? 0 : Math.floor(r1 * (maxCount + 1));
+
+    for (let k = 0; k < count; k++) {
+      const h2 = Math.sin(seed + ti * 29.1 + k * 53.7) * 43758.5453;
+      const h3 = Math.sin(seed + ti * 11.9 + k * 37.1) * 43758.5453;
+      const r2 = h2 - Math.floor(h2);
+      const r3 = h3 - Math.floor(h3);
+      const dLat = (r2 - 0.5) * 2 * st.maxR;
+      const dLon = (r3 - 0.5) * 2 * st.maxR;
+      sensors.push({
+        type: st.type, icon: st.icon,
+        lat: lat + dLat,
+        lon: lon + dLon,
+      });
     }
+  });
 
-    const radius = Number(radiusSlider.value);
-    const excludeRadar = excludeRadarInput.checked; // <--- Vérification de la case
+  return sensors;
+}
 
-    const filtered = weatherData.filter(row => {
+// Capteurs réels (positions exactes) autour d'un point, si disponibles ;
+// sinon repli sur le générateur pseudo-aléatoire.
+function getSensorsNear(lat, lon) {
+  const rec = getRealRecord(lat, lon);
+  if (rec && rec.sensors.length > 0) {
+    return rec.sensors.map(s => ({
+      type: REAL_SENSOR_TYPE_NAMES[s.type] || '?',
+      icon: iconFor(REAL_SENSOR_TYPE_NAMES[s.type] || ''),
+      lat: s.lat, lon: s.lon,
+      reliability: s.reliability,
+    }));
+  }
+  if (rec) return []; // point réel connu mais aucun capteur à portée : honnête, pas de fausses données
+  if (realDataLoaded) return []; // fichier creux : ce point n'a réellement aucun capteur à proximité
+  return getFakeSensorsNear(lat, lon);
+}
 
-        /*
-         * Exclusion spécifique du RADAR
-         */
-        if (excludeRadar && row.source === "RADAR") {
-            return false;
-        }
+let starAnimFrame = null;
 
-        /*
-         * Filtre source standard
-         */
-        if (activeSource !== "ALL" && row.source !== activeSource) {
-            return false;
-        }
+function showStarPopup(lat, lon) {
+  const popup = document.getElementById('star-popup');
+  popup.innerHTML = '';
+  popup.style.display = 'block';
 
-        /*
-         * Distance géographique
-         */
-        const distance = distanceNm(
-            selectedLatitude,
-            selectedLongitude,
-            row.lat,
-            row.lon
-        );
+  const bm    = bestModel(ATMO, 7, lat, lon, 'atmo');
+  const color = MODEL_COLORS[bm] || '#4a90d9';
 
-        row._distanceNm = distance;
+  // Capteurs réels autour du point (ou fictifs en mode démo)
+  const sensors = getSensorsNear(lat, lon);
 
-        return distance <= radius;
+  function redraw() {
+    const center = map.latLngToContainerPoint([lat, lon]);
+    popup.style.left = center.x + 'px';
+    popup.style.top  = center.y + 'px';
+    popup.innerHTML = '';
+
+    if (sensors.length === 0) return;
+
+    // SVG pour toutes les lignes
+    const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+    svg.style.cssText = 'position:absolute;overflow:visible;left:0;top:0;pointer-events:none;';
+    svg.setAttribute('width', '1'); svg.setAttribute('height', '1');
+
+    sensors.forEach((s) => {
+      // Convertir la position géo du capteur en pixels écran
+      const sp = map.latLngToContainerPoint([s.lat, s.lon]);
+      const ex = sp.x - center.x;
+      const ey = sp.y - center.y;
+
+      // Ligne du centre vers le capteur
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      line.setAttribute('x1', '0'); line.setAttribute('y1', '0');
+      line.setAttribute('x2', ex);  line.setAttribute('y2', ey);
+      line.setAttribute('stroke', color);
+      line.setAttribute('stroke-width', '1.8');
+      line.setAttribute('stroke-opacity', '0.75');
+      svg.appendChild(line);
+
+      // Halo de la ligne (glow)
+      const glow = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      glow.setAttribute('x1', '0'); glow.setAttribute('y1', '0');
+      glow.setAttribute('x2', ex);  glow.setAttribute('y2', ey);
+      glow.setAttribute('stroke', color);
+      glow.setAttribute('stroke-width', '5');
+      glow.setAttribute('stroke-opacity', '0.12');
+      svg.insertBefore(glow, svg.firstChild);
+
+      // Nœud icône à la position réelle du capteur
+      const node = document.createElement('div');
+      node.style.cssText = `
+        position:absolute;
+        width:34px;height:34px;border-radius:50%;
+        background:rgba(14,22,34,0.95);
+        border:2px solid ${color};
+        display:flex;align-items:center;justify-content:center;
+        font-size:14px;
+        left:${ex}px;top:${ey}px;
+        transform:translate(-50%,-50%);
+        box-shadow:0 0 12px ${color}88, 0 0 4px ${color}44, inset 0 0 8px rgba(0,0,0,0.5);
+      `;
+      node.textContent = s.icon;
+      node.title = `${s.type} · ${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°`
+        + (s.reliability !== undefined ? ` · fiabilité ${s.reliability.toFixed(1)}/5` : '');
+      popup.appendChild(node);
+
+      // Label type (discret, sans score)
+      const lbl = document.createElement('div');
+      // Décaler le label dans la direction de la branche
+      const dist = Math.hypot(ex, ey);
+      const nx = dist > 0 ? ex / dist : 0;
+      const ny = dist > 0 ? ey / dist : 0;
+      const lx = ex + nx * 22;
+      const ly = ey + ny * 22;
+      lbl.style.cssText = `
+        position:absolute;
+        left:${lx}px;top:${ly}px;
+        transform:translate(-50%,-50%);
+        background:rgba(8,14,22,0.93);
+        border:1px solid ${color}66;border-radius:4px;
+        padding:2px 7px;
+        font-size:10px;color:#c0d8e8;white-space:nowrap;
+        letter-spacing:0.03em;
+        pointer-events:none;
+        box-shadow:0 2px 8px rgba(0,0,0,0.5);
+      `;
+      lbl.textContent = s.type;
+      popup.appendChild(lbl);
     });
 
-    filtered.sort((a, b) => a._distanceNm - b._distanceNm);
+    popup.appendChild(svg);
+  }
 
-    return filtered;
+  if (starAnimFrame) cancelAnimationFrame(starAnimFrame);
+  function loop() { redraw(); starAnimFrame = requestAnimationFrame(loop); }
+  loop();
+}
+
+function hideStarPopup() {
+  document.getElementById('star-popup').style.display = 'none';
+  if (starAnimFrame) { cancelAnimationFrame(starAnimFrame); starAnimFrame = null; }
+  if (selectedMarker) {
+    selectedMarker.setStyle({ color: 'rgba(0,0,0,0.4)', weight: 0.4, fillOpacity: 0.82 });
+    selectedMarker = null;
+  }
+  selectedLatLon = null;
+}
+
+// ══════════════════════════════════════════════
+// COLOR MODE
+// ══════════════════════════════════════════════
+function toggleColorMode(btn) {
+  colorByScore = !colorByScore;
+  btn.classList.toggle('active', colorByScore);
+  const legendTitle = document.getElementById('legend-title');
+  const legendItems = document.getElementById('legend-items');
+  if (colorByScore) {
+    legendTitle.textContent = 'Score du meilleur modèle';
+    legendItems.innerHTML = `
+      <div class="li"><div class="ld" style="background:#4ade80"></div><span>≥ 4.5 Excellent</span></div>
+      <div class="li"><div class="ld" style="background:#86efac"></div><span>≥ 3.5 Bon</span></div>
+      <div class="li"><div class="ld" style="background:#fbbf24"></div><span>≥ 2.5 Moyen</span></div>
+      <div class="li"><div class="ld" style="background:#f97316"></div><span>≥ 1.5 Faible</span></div>
+      <div class="li"><div class="ld" style="background:#f87171"></div><span>&lt; 1.5 Mauvais</span></div>`;
+  } else {
+    legendTitle.textContent = 'Meilleur modèle atmo.';
+    rebuildLegend();
+  }
+  renderPoints();
+}
+
+// ══════════════════════════════════════════════
+// ZONES
+// ══════════════════════════════════════════════
+const ZONES = [
+  ['Atlantique NE', 'AROME',    [[35,-40],[65,-40],[65,10],[35,10]]],
+  ['Atlantique NO', 'GFS',      [[25,-100],[55,-100],[55,-50],[25,-50]]],
+  ['Europe côtier', 'ARPEGE-Europe',   [[42,-5],[50,-5],[50,10],[42,10]]],
+  ['Mer du Nord',   'ICON-EU',    [[50,2],[62,2],[62,12],[50,12]]],
+  ['Pac. NO',       'GFS',     [[20,140],[50,140],[50,180],[20,180]]],
+  ['Pac. NE',       'GFS',     [[20,-180],[50,-180],[50,-120],[20,-120]]],
+  ['Antilles',      'AROME-OM-Antilles', [[10,-65],[20,-65],[20,-58],[10,-58]]],
+];
+
+const zonesLayer = L.layerGroup();
+let zonesVisible = false;
+
+function rebuildZones() {
+  zonesLayer.clearLayers();
+  ZONES.forEach(([zname, mname, coords]) => {
+    const color = MODEL_COLORS[mname] || '#4a90d9';
+    const poly = L.polygon(coords, {
+      fillColor: color, fillOpacity: .1,
+      color: color, weight: 1.5, dashArray: '5 4',
+      interactive: false,
+    });
+    poly.bindTooltip(`${mname} · ${zname}`, {
+      permanent: true, direction: 'center',
+      className: 'zt', opacity: 1,
+    });
+    zonesLayer.addLayer(poly);
+  });
+}
+rebuildZones();
+
+function toggleZones(btn) {
+  zonesVisible = !zonesVisible;
+  btn.classList.toggle('active', zonesVisible);
+  if (zonesVisible) zonesLayer.addTo(map);
+  else map.removeLayer(zonesLayer);
+}
+
+// ══════════════════════════════════════════════
+// PANEL
+// ══════════════════════════════════════════════
+function zoneName(lat, lon) {
+  if (lat > 66) return 'Cercle Arctique';
+  if (lat < -60) return 'Océan Austral';
+  if (lon > -15 && lon < 42 && lat > 30 && lat < 47) return 'Méditerranée';
+  if (lon > -14 && lon < 42 && lat > 47 && lat < 65) return 'Mer du Nord / Baltique';
+  if (lon > -80 && lon < -10 && lat > 0)  return 'Atlantique Nord';
+  if (lon > -80 && lon < -10 && lat <= 0) return 'Atlantique Sud';
+  if (lon > -80 && lon < -10 && lat > 55) return 'Mer du Labrador';
+  if (lon > 40  && lon < 100 && lat > -40 && lat < 30) return 'Océan Indien';
+  if (lon > 100 && lat > 0)  return 'Pacifique Nord-Ouest';
+  if (lon < -120 && lat > 0) return 'Pacifique Nord-Est';
+  if (lon < -70  && lat < 0) return 'Pacifique Sud-Est';
+  if (lon > 100  && lat < 0) return 'Pacifique Sud-Ouest';
+  if (lon > 50 && lon < 80 && lat > 5 && lat < 25) return "Mer d'Arabie";
+  if (lon > 80 && lon < 100 && lat > 5 && lat < 22) return 'Golfe du Bengale';
+  return 'Haute mer';
+}
+
+// Colonnes réelles du tableau atmo (doivent correspondre à
+// REAL_SENSOR_TYPE_NAMES pour les types disponibles ; ASCAT/Radiosonde/
+// Sat.IR resteront à "—" tant qu'aucune source de ce type n'existe dans
+// le CSV de capteurs).
+const ATMO_COLS = ['Synop','Bateau','Bouée','Radar','ASCAT','Radiosonde','Sat. IR'];
+
+function onPointClick(lat, lon) {
+  const latS = Math.abs(lat).toFixed(3)+'° '+(lat>=0?'N':'S');
+  const lonS = Math.abs(lon).toFixed(3)+'° '+(lon>=0?'E':'O');
+  document.getElementById('pc').textContent = latS+' — '+lonS;
+  document.getElementById('pz').textContent = zoneName(lat,lon);
+
+  const ba = buildTable('tb-atmo', ATMO, 7, lat, lon, 'atmo', ATMO_COLS);
+
+  const oceanEmpty = document.getElementById('tb-ocean-empty');
+  const oceanTable = document.getElementById('tb-ocean-table');
+  if (OCEAN.length === 0) {
+    oceanEmpty.style.display = 'block';
+    oceanEmpty.textContent = "Aucun modèle océanique disponible actuellement (pas de GRIB SST/courants fourni).";
+    oceanTable.style.display = 'none';
+  } else {
+    oceanEmpty.style.display = 'none';
+    oceanTable.style.display = '';
+    buildTable('tb-ocean', OCEAN, 6, lat, lon, 'ocean', null);
+  }
+
+  buildTable('tb-vague', WAVE, 5, lat, lon, 'wave', null);
+
+  document.getElementById('pb').textContent = ba ? ('▲ '+ba) : '';
+
+  document.getElementById('panel').classList.add('open');
+}
+
+function closePanel() {
+  document.getElementById('panel').classList.remove('open');
+  hideStarPopup();
+}
+
+function showTab(id, btn) {
+  document.querySelectorAll('.tc').forEach(e=>e.classList.remove('active'));
+  document.querySelectorAll('.ptab').forEach(e=>e.classList.remove('active'));
+  document.getElementById('tab-'+id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// Clic sur la carte (fond) : fermer panneau + étoile
+map.on('click', () => { closePanel(); });
+
+// ══════════════════════════════════════════════
+// UPDATE TIMESTAMP
+// ══════════════════════════════════════════════
+let lastUpdate = new Date();
+function fmtAge() {
+  const s = Math.round((new Date()-lastUpdate)/1000);
+  if (s < 60) return `il y a ${s}s`;
+  if (s < 3600) return `il y a ${Math.floor(s/60)}min`;
+  return `il y a ${Math.floor(s/3600)}h`;
+}
+setInterval(()=>{ document.getElementById('last-update').textContent = fmtAge(); }, 5000);
+document.getElementById('last-update').textContent = fmtAge();
+
+function reloadData() {
+  lastUpdate = new Date();
+  document.getElementById('last-update').textContent = fmtAge();
+  loadRealData();
+  renderPoints();
+  const btn = document.getElementById('btn-reload');
+  btn.classList.add('ok');
+  setTimeout(()=>btn.classList.remove('ok'), 1200);
+}
+
+// ══════════════════════════════════════════════
+// INITIAL RENDER
+// ══════════════════════════════════════════════
+renderPoints();
+
+// ══════════════════════════════════════════════
+// SIDE MENU NAVIGATION
+// ══════════════════════════════════════════════
+function toggleMenu() {
+  const menu    = document.getElementById('side-menu');
+  const overlay = document.getElementById('menu-overlay');
+  menu.classList.toggle('open');
+  overlay.classList.toggle('active');
+}
+
+function updateZoomLevel() {
+  const zoomEl = document.getElementById('zoom-level');
+  if (zoomEl) zoomEl.textContent = 'z' + map.getZoom();
+}
+updateZoomLevel();
+
+// ══════════════════════════════════════════════
+// EXPORT SYSTEM
+// ══════════════════════════════════════════════
+function toggleExport(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('export-popup').classList.toggle('open');
+  document.getElementById('btn-export').classList.toggle('active');
+}
+function closeExport() {
+  document.getElementById('export-popup').classList.remove('open');
+  document.getElementById('btn-export').classList.remove('active');
+}
+
+function toggleGribExport(e) {
+  if (e) e.stopPropagation();
+  document.getElementById('gribcorrected-popup').classList.toggle('open');
+  document.getElementById('btn-grib').classList.toggle('active');
+}
+function closegribExport() {
+  document.getElementById('gribcorrected-popup').classList.remove('open');
+  document.getElementById('btn-grib').classList.remove('active');
 }
 
 
-/* ================================================================
-   ACTUALISATION DES RESULTATS
-================================================================ */
+map.on('mousedown', () => { closeExport(); });
 
-function updateResults() {
-
-    if (
-        selectedLatitude === null ||
-        selectedLongitude === null
-    ) {
-
-        return;
-
-    }
-
-
-    const results =
-        getDataInRadius();
-
-
-    /*
-     * Nombre de données.
-     */
-
-    pointCount.textContent =
-        results.length.toLocaleString(
-            "fr-FR"
-        );
-
-
-    /*
-     * Distance maximale.
-     */
-
-    if (results.length > 0) {
-
-        const max =
-            Math.max(
-                ...results.map(
-                    row =>
-                        row._distanceNm
-                )
-            );
-
-
-        maxDistance.textContent =
-            max.toFixed(1) +
-            " Nm";
-
-    } else {
-
-        maxDistance.textContent =
-            "—";
-
-    }
-
-
-    /*
-     * Sources présentes.
-     */
-
-    const sources =
-        new Set(
-            results.map(
-                row => row.source
-            )
-        );
-
-
-    sourceCount.textContent =
-        sources.size;
-
-
-    /*
-     * Variables présentes.
-     */
-
-    const variables =
-        new Set(
-            results.map(
-                row => row.variable
-            )
-        );
-
-
-    variableCount.textContent =
-        variables.size;
-
-
-    /*
-     * Marqueurs.
-     */
-
-    updateMapMarkers(
-        results
-    );
-
-
-    /*
-     * Liste des données.
-     */
-
-    renderWeatherData(
-        results
-    );
-
-}
-
-
-
-/* ================================================================
-   MARQUEURS CARTE
-================================================================ */
-
-function updateMapMarkers(
-    results
-) {
-
-    /*
-     * Supprimer les anciens marqueurs.
-     */
-
-    resultMarkers.forEach(
-        marker => {
-
-            map.removeLayer(
-                marker
-            );
-
-        }
-    );
-
-
-    resultMarkers = [];
-
-
-    /*
-     * Pour éviter une surcharge de la carte,
-     * on regroupe les données ayant exactement
-     * les mêmes coordonnées.
-     */
-
-    const locations =
-        new Map();
-
-
-    results.forEach(
-        row => {
-
-            const key =
-                row.lat.toFixed(5) +
-                "_" +
-                row.lon.toFixed(5);
-
-
-            if (
-                !locations.has(key)
-            ) {
-
-                locations.set(
-                    key,
-                    []
-                );
-
-            }
-
-
-            locations
-                .get(key)
-                .push(row);
-
-        }
-    );
-
-
-    /*
-     * Limite uniquement pour la carte.
-     *
-     * Les données ne sont PAS supprimées
-     * du panneau.
-     */
-
-    const locationsToDisplay =
-        Array.from(
-            locations.values()
-        ).slice(
-            0,
-            CONFIG.maxMapMarkers
-        );
-
-
-    locationsToDisplay.forEach(
-        rows => {
-
-            const first =
-                rows[0];
-
-
-            const marker =
-                L.circleMarker(
-
-                    [
-                        first.lat,
-                        first.lon
-                    ],
-
-                    {
-
-                        radius: 5,
-
-                        color: "#ffffff",
-
-                        weight: 1.5,
-
-                        fillColor:
-                            getSourceColor(
-                                first.source
-                            ),
-
-                        fillOpacity: 0.85
-
-                    }
-
-                );
-
-
-            /*
-             * Popup regroupant les données
-             * de cette position.
-             */
-
-            marker.bindPopup(
-                createPopup(
-                    rows
-                )
-            );
-
-
-            marker.addTo(map);
-
-
-            resultMarkers.push(
-                marker
-            );
-
-        }
-    );
-
-}
-
-
-
-/* ================================================================
-   COULEUR SOURCE
-================================================================ */
-
-function getSourceColor(
-    source
-) {
-
-    switch (source) {
-
-        case "RADAR":
-            return "#2563eb";
-
-        case "BUOY":
-            return "#059669";
-
-        case "COASTAL_STATION":
-            return "#7c3aed";
-
-        case "SHIP":
-            return "#ea580c";
-
-        default:
-            return "#6b7280";
-
-    }
-
-}
-
-
-
-/* ================================================================
-   POPUP CARTE
-================================================================ */
-
-function createPopup(
-    rows
-) {
-
-    const first =
-        rows[0];
-
-
-    /*
-     * On regroupe les variables
-     * de la position.
-     */
-
-    let html =
-
-        "<div style='min-width:220px'>" +
-
-        "<strong>" +
-        escapeHTML(
-            first.source
-        ) +
-        "</strong><br>" +
-
-        "<span style='font-size:11px;color:#777'>" +
-
-        escapeHTML(
-            first.provider
-        ) +
-
-        "</span><br><br>";
-
-
-    html +=
-
-        "<strong>Position</strong><br>" +
-
-        first.lat.toFixed(4) +
-        "° / " +
-        first.lon.toFixed(4) +
-
-        "<br>" +
-
-        "<span style='font-size:11px;color:#2563eb'>" +
-
-        first._distanceNm.toFixed(1) +
-
-        " Nm</span><br><br>";
-
-
-    /*
-     * Maximum 20 lignes dans le popup.
-     */
-
-    rows
-        .slice(0, 20)
-        .forEach(
-            row => {
-
-                html +=
-
-                    "<div style='display:flex;justify-content:space-between;gap:15px;border-top:1px solid #eee;padding:4px 0'>" +
-
-                    "<span>" +
-                    escapeHTML(
-                        row.variable
-                    ) +
-                    "</span>" +
-
-                    "<strong>" +
-
-                    formatValue(
-                        row.value
-                    ) +
-
-                    " " +
-
-                    escapeHTML(
-                        row.unit
-                    ) +
-
-                    "</strong>" +
-
-                    "</div>";
-
-            }
-        );
-
-
-    if (
-        rows.length > 20
-    ) {
-
-        html +=
-
-            "<br><span style='font-size:10px;color:#888'>" +
-
-            "+" +
-            (
-                rows.length - 20
-            ) +
-
-            " autres données"
-
-            +
-
-            "</span>";
-
-    }
-
-
-    html += "</div>";
-
-
-    return html;
-
-}
-
-
-
-/* ================================================================
-   AFFICHAGE DES DONNÉES
-================================================================ */
-
-function renderWeatherData(
-    results
-) {
-
-    weatherDataElement.innerHTML = "";
-
-
-    if (
-        results.length === 0
-    ) {
-
-        weatherDataElement.innerHTML =
-
-            "<div class='weather-placeholder'>" +
-
-            "Aucune donnée météo dans un rayon de " +
-
-            radiusSlider.value +
-
-            " Nm." +
-
-            "</div>";
-
-        return;
-
-    }
-
-
-    /*
-     * Regroupement :
-     *
-     * source + position + timestamp
-     *
-     * Ainsi les différentes variables
-     * d'une même observation apparaissent
-     * ensemble.
-     */
-
-    const groups =
-        new Map();
-
-
-    results.forEach(
-        row => {
-
-            const key =
-
-                row.source +
-                "|" +
-                row.lat.toFixed(5) +
-                "|" +
-                row.lon.toFixed(5) +
-                "|" +
-                row.time_utc;
-
-
-            if (
-                !groups.has(key)
-            ) {
-
-                groups.set(
-                    key,
-                    []
-                );
-
-            }
-
-
-            groups
-                .get(key)
-                .push(row);
-
-        }
-    );
-
-
-    /*
-     * Afficher les groupes.
-     */
-
-    Array.from(
-        groups.values()
-    )
-    .forEach(
-        rows => {
-
-            const first =
-                rows[0];
-
-
-            const card =
-                document.createElement(
-                    "div"
-                );
-
-
-            card.className =
-                "weather-record";
-
-
-            /*
-             * Header
-             */
-
-            const header =
-                document.createElement(
-                    "div"
-                );
-
-
-            header.className =
-                "weather-record-header";
-
-
-            const source =
-                document.createElement(
-                    "span"
-                );
-
-
-            source.className =
-                "weather-source";
-
-
-            source.textContent =
-                first.source;
-
-
-            const distance =
-                document.createElement(
-                    "span"
-                );
-
-
-            distance.className =
-                "weather-distance";
-
-
-            distance.textContent =
-                first._distanceNm.toFixed(1) +
-                " Nm";
-
-
-            header.appendChild(
-                source
-            );
-
-            header.appendChild(
-                distance
-            );
-
-
-            card.appendChild(
-                header
-            );
-
-
-            /*
-             * Métadonnées
-             */
-
-            const meta =
-                document.createElement(
-                    "div"
-                );
-
-
-            meta.className =
-                "weather-meta";
-
-
-            meta.textContent =
-
-                formatDate(
-                    first.time_utc
-                ) +
-
-                " · " +
-
-                first.lat.toFixed(3) +
-                "° / " +
-                first.lon.toFixed(3) +
-
-                (
-                    first.station_id
-                        ? " · " +
-                          first.station_id
-                        : ""
-                );
-
-
-            card.appendChild(
-                meta
-            );
-
-
-            /*
-             * Variables
-             */
-
-            rows.forEach(
-                row => {
-
-                    const variable =
-                        document.createElement(
-                            "div"
-                        );
-
-
-                    variable.className =
-                        "weather-variable";
-
-
-                    const name =
-                        document.createElement(
-                            "span"
-                        );
-
-
-                    name.className =
-                        "weather-variable-name";
-
-
-                    name.textContent =
-                        row.variable;
-
-
-                    const value =
-                        document.createElement(
-                            "span"
-                        );
-
-
-                    value.className =
-                        "weather-variable-value";
-
-
-                    value.textContent =
-
-                        formatValue(
-                            row.value
-                        ) +
-
-                        (
-                            row.unit
-                                ? " " +
-                                  row.unit
-                                : ""
-                        );
-
-
-                    variable.appendChild(
-                        name
-                    );
-
-                    variable.appendChild(
-                        value
-                    );
-
-
-                    card.appendChild(
-                        variable
-                    );
-
-                }
-            );
-
-
-            weatherDataElement.appendChild(
-                card
-            );
-
-        }
-    );
-
-}
-
-
-
-/* ================================================================
-   FORMAT VALEUR
-================================================================ */
-
-function formatValue(
-    value
-) {
-
-    if (
-        value === null ||
-        value === undefined ||
-        Number.isNaN(value)
-    ) {
-
-        return "—";
-
-    }
-
-
-    if (
-        typeof value === "number"
-    ) {
-
-        return value
-            .toLocaleString(
-                "fr-FR",
-                {
-                    maximumFractionDigits: 2
-                }
-            );
-
-    }
-
-
-    return String(
-        value
-    );
-
-}
-
-
-
-/* ================================================================
-   FORMAT DATE
-================================================================ */
-
-function formatDate(
-    dateString
-) {
-
-    if (!dateString) {
-
-        return "Date inconnue";
-
-    }
-
-
-    const date =
-        new Date(
-            dateString
-        );
-
-
-    if (
-        Number.isNaN(
-            date.getTime()
-        )
-    ) {
-
-        return dateString;
-
-    }
-
-
-    return date.toLocaleString(
-        "fr-FR",
-        {
-
-            year: "numeric",
-
-            month: "2-digit",
-
-            day: "2-digit",
-
-            hour: "2-digit",
-
-            minute: "2-digit",
-
-            timeZone: "UTC"
-
-        }
-    ) + " UTC";
-
-}
-
-
-
-/* ================================================================
-   PROTECTION HTML
-================================================================ */
-
-function escapeHTML(
-    value
-) {
-
-    return String(
-        value ?? ""
-    )
-    .replace(
-        /&/g,
-        "&amp;"
-    )
-    .replace(
-        /</g,
-        "&lt;"
-    )
-    .replace(
-        />/g,
-        "&gt;"
-    )
-    .replace(
-        /"/g,
-        "&quot;"
-    )
-    .replace(
-        /'/g,
-        "&#039;"
-    );
-
-}
-
-/* ================================================================
-   CHARGEMENT AUTOMATIQUE DE latest.csv
-================================================================ */
-
-async function loadLatestCSV() {
-
-    setDataSourceLoading();
-
-    try {
-
-        const response =
-            await fetch(
-                "latest.csv?cache=" +
-                Date.now()
-            );
-
-
-        if (!response.ok) {
-
-            throw new Error(
-                "HTTP " +
-                response.status
-            );
-
-        }
-
-
-        const csvText =
-            await response.text();
-
-
-        /*
-         * On utilise PapaParse directement
-         * sur le contenu téléchargé.
-         */
-
-        Papa.parse(
-
-            csvText,
-
-            {
-
-                header: true,
-
-                skipEmptyLines: true,
-
-                dynamicTyping: false,
-
-
-                complete:
-                    function (results) {
-
-                        processCSV(
-                            results,
-                            null,
-                            true
-                        );
-
-                    },
-
-
-                error:
-                    function (error) {
-
-                        throw error;
-
-                    }
-
-            }
-
-        );
-
-    }
-
-    catch (error) {
-
-        console.error(
-            "Impossible de charger latest.csv :",
-            error
-        );
-
-
-        setDataSourceError();
-
-        document.getElementById(
-            "fileInfo"
-        ).style.display = "block";
-
-
-        document.getElementById(
-            "fileInfo"
-        ).textContent =
-
-            "latest.csv n'a pas pu être chargé. " +
-            "Vous pouvez importer un fichier CSV manuellement.";
-
-    }
-
-}
-
-/* ================================================================
-   ETAT INITIAL
-================================================================ */
-
-radiusValue.textContent =
-    radiusSlider.value;
-/* ================================================================
-   DÉMARRAGE
-================================================================ */
-
-radiusValue.textContent =
-    radiusSlider.value;
-
-
-/*
- * Chargement automatique du dernier fichier.
- */
-
-loadLatestCSV();
+// loadMarineData + loadRealData sont appelés après login
 
 </script>
-
 </body>
-
 </html>
