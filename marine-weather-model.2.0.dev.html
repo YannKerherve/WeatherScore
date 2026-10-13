@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -681,61 +682,76 @@ let allPoints = null;
 // par comparaison GRIB ↔ observations. Remplace le générateur
 // pseudo-aléatoire srand() quand disponible.
 // ══════════════════════════════════════════════
-let realDataByKey = null;   // Map "lat,lon" -> record réel
-let realHeader = null;      // { nAtmo, nOcean, nWave, maxSensors }
+let realIndex = null;        // Map clé numérique -> offset de l'enregistrement (fichier creux : seulement les points liés à un capteur)
+let realDV = null;           // DataView du fichier de scores
+let realStations = null;     // { type:Uint8Array, lat:Float32Array, lon:Float32Array, time:Uint32Array }
+let realTarget = 0;          // instant cible (epoch s) utilisé pour la comparaison
+let realDataLoaded = false;  // true dès qu'un fichier de données réelles est chargé (même s'il est vide pour un point) :
+                             //  - jamais chargé -> mode démonstration complet (repli sur srand())
+                             //  - chargé mais point absent -> ce point n'a réellement aucune donnée liée -> "—", jamais de repli fictif
+let realHeader = null;       // { models:[{cat,name,sub}], nModels, nStations, version, target }
+const recCache = new Map();  // cache d'enregistrements décodés
 const REAL_SENS_TYPE_COUNT = 7;
 // Ordre exact utilisé côté C (enum SensorType) : SYNOP,BATEAU,BOUEE,RADAR,ASCAT,RADIOSONDE,SATIR
 const REAL_SENSOR_TYPE_NAMES = ['Synop','Bateau','Bouée','Radar','ASCAT','Radiosonde','Sat. IR'];
+// Rayon de liaison (deg) et fiabilité de base par type (mêmes valeurs que gen_points_mer.c)
+const SENS_MAX_R = [2.5, 5.0, 4.0, 3.0, 6.0, 3.5, 7.0];
+const SENS_BASE_REL = [4.2, 3.5, 4.0, 3.2, 3.8, 4.5, 3.0];
 
-function keyOf(lat, lon) { return lat + ',' + lon; }
+// Les points ont des coordonnées à 2 décimales : clé entière exacte, sans chaîne de caractères (mémoire minimale)
+function keyOf(lat, lon) { return (Math.round(lat*100) + 9000) * 40000 + (Math.round(lon*100) + 18000); }
 
-// Parse le format binaire produit par gen_points_mer.c (points_mer_data.bin) :
-//   FileHeader (44 octets) puis, par point :
-//     lat:f32 lon:f32 n_sensors:u8
-//     n_sensors x { type:u8 lat:f32 lon:f32 reliability:f32 correction:f32 }
-//     N_MODELS x f32 (score global)
-//     N_MODELS x (7 x f32) (score par type de capteur)
+// Format v2 produit par gen_points_mer.c (little-endian) :
+//   "MPTS_BIN" u32 version u32 nPoints u32 nStations u32 target | u8 nModels u8 nTypes u8 maxSensors u8 0
+//   nModels x { u8 cat, u8 len, nom, u8 len, sous-titre }
+//   nStations x { u8 type, f32 lat, f32 lon, u32 time }
+//   nPoints x { f32 lat, f32 lon, u8 nS, nS x u16 stationIdx,
+//               nModels x { u8 masque ; si bit7 : u8 score global ; puis u8 par bit de type (0..6) } }   (score = octet/50)
 function parseDataBuffer(buffer) {
   const dv = new DataView(buffer);
-  let o = 0;
-  const magic = String.fromCharCode(...new Uint8Array(buffer, 0, 8)); o += 8;
+  const u8 = new Uint8Array(buffer);
+  const magic = String.fromCharCode(...u8.subarray(0, 8));
   if (magic !== 'MPTS_BIN') throw new Error("Format de fichier de scores non reconnu (magic invalide).");
-  const version = dv.getUint32(o, true); o += 4;
-  const nPoints = dv.getUint32(o, true); o += 4;
-  o += 4*4; // lat_min,lat_max,lon_min,lon_max
-  o += 4;   // resolution
-  const nAtmo = dv.getUint8(o); o += 1;
-  const nOcean = dv.getUint8(o); o += 1;
-  const nWave = dv.getUint8(o); o += 1;
-  const maxSensors = dv.getUint8(o); o += 1;
-  o += 4; // reserved
-  const nModels = nAtmo + nOcean + nWave;
-
-  const map = new Map();
-  for (let i = 0; i < nPoints; i++) {
-    const lat = dv.getFloat32(o, true); o += 4;
-    const lon = dv.getFloat32(o, true); o += 4;
-    const nSensors = dv.getUint8(o); o += 1;
-    const sensors = [];
-    for (let s = 0; s < nSensors; s++) {
-      const type = dv.getUint8(o); o += 1;
-      const slat = dv.getFloat32(o, true); o += 4;
-      const slon = dv.getFloat32(o, true); o += 4;
-      const reliability = dv.getFloat32(o, true); o += 4;
-      const correction = dv.getFloat32(o, true); o += 4;
-      sensors.push({ type, lat: slat, lon: slon, reliability, correction });
-    }
-    const scores = new Float32Array(nModels);
-    for (let m = 0; m < nModels; m++) { scores[m] = dv.getFloat32(o, true); o += 4; }
-    const typeScores = [];
-    for (let m = 0; m < nModels; m++) {
-      const row = new Float32Array(REAL_SENS_TYPE_COUNT);
-      for (let t = 0; t < REAL_SENS_TYPE_COUNT; t++) { row[t] = dv.getFloat32(o, true); o += 4; }
-      typeScores.push(row);
-    }
-    map.set(keyOf(lat, lon), { lat, lon, sensors, scores, typeScores });
+  const version = dv.getUint32(8, true);
+  if (version !== 2) throw new Error("Version " + version + " non supportée : regénère le fichier avec la dernière version de gen_points_mer.");
+  const nPoints = dv.getUint32(12, true), nStations = dv.getUint32(16, true), target = dv.getUint32(20, true);
+  const nModels = dv.getUint8(24), nTypes = dv.getUint8(25);
+  let o = 28;
+  const dec = new TextDecoder('utf-8');
+  const models = [];
+  for (let m = 0; m < nModels; m++) {
+    const cat = dv.getUint8(o++);
+    let l = dv.getUint8(o++); const name = dec.decode(u8.subarray(o, o + l)); o += l;
+    l = dv.getUint8(o++); const sub = dec.decode(u8.subarray(o, o + l)); o += l;
+    models.push({ cat, name, sub });
   }
-  return { map, nAtmo, nOcean, nWave, maxSensors, nModels, version };
+  const st = { type: new Uint8Array(nStations), lat: new Float32Array(nStations), lon: new Float32Array(nStations), time: new Uint32Array(nStations) };
+  for (let i = 0; i < nStations; i++) {
+    st.type[i] = dv.getUint8(o); st.lat[i] = dv.getFloat32(o + 1, true); st.lon[i] = dv.getFloat32(o + 5, true); st.time[i] = dv.getUint32(o + 9, true);
+    o += 13;
+  }
+  // index des enregistrements (parcours séquentiel, aucun objet créé par point)
+  const index = new Map();
+  for (let i = 0; i < nPoints; i++) {
+    const start = o;
+    const lat = dv.getFloat32(o, true), lon = dv.getFloat32(o + 4, true); o += 8;
+    const ns = dv.getUint8(o); o += 1 + 2 * ns;
+    for (let m = 0; m < nModels; m++) {
+      const mask = dv.getUint8(o++);
+      let cnt = (mask & 0x80) ? 1 : 0;
+      for (let t = 0; t < nTypes; t++) if (mask & (1 << t)) cnt++;
+      o += cnt;
+    }
+    index.set(keyOf(lat, lon), start);
+  }
+  return { dv, index, stations: st, models, nModels, nTypes, nStations, nPoints, version, target };
+}
+
+function applyParsed(parsed) {
+  realIndex = parsed.index; realDV = parsed.dv; realStations = parsed.stations; realTarget = parsed.target;
+  realHeader = parsed; realDataLoaded = true; recCache.clear();
+  setDataBadge(true);
+  rebuildModelListsFromHeader();
 }
 
 async function loadRealData() {
@@ -744,13 +760,11 @@ async function loadRealData() {
     if (!resp.ok) throw new Error('introuvable');
     const buf = await resp.arrayBuffer();
     const parsed = parseDataBuffer(buf);
-    realDataByKey = parsed.map;
-    realHeader = parsed;
-    console.log('Données réelles chargées :', realDataByKey.size, 'points,', parsed.nModels, 'modèles');
-    setDataBadge(true);
-    rebuildModelListsFromHeader();
+    applyParsed(parsed);
+    console.log('Données réelles chargées :', parsed.nPoints, 'points liés,', parsed.nStations, 'stations,', parsed.nModels, 'modèles :', parsed.models.map(m => m.name).join(', '));
   } catch (err) {
     console.warn('Pas de données réelles (points_mer_data.bin) :', err.message, '— mode démonstration (scores fictifs).');
+    realDataLoaded = false;
     setDataBadge(false);
   }
 }
@@ -759,7 +773,9 @@ function setDataBadge(real) {
   const b = document.getElementById('data-badge');
   if (!b) return;
   if (real) {
-    b.textContent = 'Données réelles (GRIB ↔ capteurs)';
+    const d = new Date(realTarget * 1000);
+    const when = isNaN(d.getTime()) ? '' : ' · ' + d.toISOString().slice(0, 16).replace('T', ' ') + ' UTC';
+    b.textContent = 'Données réelles (GRIB ↔ capteurs)' + when;
     b.className = 'real';
   } else {
     b.textContent = 'Mode démonstration (scores fictifs)';
@@ -767,9 +783,32 @@ function setDataBadge(real) {
   }
 }
 
+// Décode à la demande l'enregistrement d'un point : { lat, lon, sensors:[idxStation], scores:Float32Array(nModels), typeScores:[Float32Array(7)] }
 function getRealRecord(lat, lon) {
-  if (!realDataByKey) return null;
-  return realDataByKey.get(keyOf(lat, lon)) || null;
+  if (!realIndex) return null;
+  const key = keyOf(lat, lon);
+  let rec = recCache.get(key);
+  if (rec !== undefined) return rec;
+  const off = realIndex.get(key);
+  if (off === undefined) return null;
+  const dv = realDV, nM = realHeader.nModels, nT = realHeader.nTypes;
+  let o = off + 8;
+  const ns = dv.getUint8(o++);
+  const sensors = [];
+  for (let k = 0; k < ns; k++) { sensors.push(dv.getUint16(o, true)); o += 2; }
+  const scores = new Float32Array(nM).fill(NaN);
+  const typeScores = [];
+  for (let m = 0; m < nM; m++) {
+    const row = new Float32Array(REAL_SENS_TYPE_COUNT).fill(NaN);
+    const mask = dv.getUint8(o++);
+    if (mask & 0x80) scores[m] = dv.getUint8(o++) / 50;
+    for (let t = 0; t < nT; t++) if (mask & (1 << t)) row[t] = dv.getUint8(o++) / 50;
+    typeScores.push(row);
+  }
+  rec = { lat, lon, sensors, scores, typeScores };
+  if (recCache.size > 20000) recCache.clear();
+  recCache.set(key, rec);
+  return rec;
 }
 
 // ══════════════════════════════════════════════
@@ -820,31 +859,23 @@ L.tileLayer('https://{s}.basemaps.cartocdn.com/dark_only_labels/{z}/{x}/{y}{r}.p
 }).addTo(map);
 
 // ══════════════════════════════════════════════
-// MODELS — listes par défaut = modèles réellement produits par
-// gen_points_mer.c (voir MODEL_DEFS côté C). Remplacées automatiquement
-// si l'en-tête du fichier de données réelles indique un nombre différent
-// de modèles par catégorie (rebuildModelListsFromHeader).
+// MODELS — en mode réel, la liste des modèles (nom, catégorie) vient de l'en-tête du fichier de
+// scores : tout modèle dont les GRIB sont présents dans le dossier apparaît automatiquement.
+// Chaque modèle porte `gi` = son indice global dans le fichier (utilisé pour lire les scores).
+// Les listes ci-dessous ne servent qu'au mode démonstration (aucun fichier chargé).
 // ══════════════════════════════════════════════
 let ATMO = [
-  { id:'arome',        name:'AROME',              sub:'Météo-France · 1.3 km' },
-  { id:'arome-hd',      name:'AROME-HD',           sub:'Météo-France HD' },
-  { id:'arome-om',      name:'AROME-OM-Antilles',  sub:'Météo-France Outre-mer' },
-  { id:'arpege-eu',     name:'ARPEGE-Europe',      sub:'Météo-France · 10 km' },
-  { id:'arpege-globe',  name:'ARPEGE-Globe',       sub:'Météo-France · global' },
-  { id:'icon-eu',       name:'ICON-EU',            sub:'DWD · 13 km' },
-  { id:'gfs',           name:'GFS',                sub:'NCEP · 13 km' },
+  { gi:0, name:'AROME',       sub:'Météo-France · 1.3 km' },
+  { gi:1, name:'ARPEGE',      sub:'Météo-France · global' },
+  { gi:2, name:'ICON-EU',     sub:'DWD · 6.5 km' },
+  { gi:3, name:'GFS',         sub:'NCEP · 0.25°' },
 ];
-
-let OCEAN = [
-  // Aucun modèle océanique réel disponible pour l'instant (pas de GRIB
-  // SST/courants fourni). Ajouter ici quand une source réelle existera.
-];
-
+let OCEAN = [];
 let WAVE = [
-  { id:'mfwam', name:'MFWAM', sub:'Météo-France · vagues' },
+  { gi:4, name:'MFWAM', sub:'Météo-France · vagues' },
 ];
 
-const MODEL_PALETTE = ['#4a90d9','#e07b39','#b05bdd','#27ae60','#e74c3c','#f39c12','#1abc9c','#e91e8c','#8b5cf6','#06b6d4'];
+const MODEL_PALETTE = ['#4a90d9','#e07b39','#b05bdd','#27ae60','#e74c3c','#f39c12','#1abc9c','#e91e8c','#8b5cf6','#06b6d4','#84cc16','#f472b6'];
 let MODEL_COLORS = {};
 function rebuildModelColors() {
   MODEL_COLORS = {};
@@ -852,21 +883,13 @@ function rebuildModelColors() {
 }
 rebuildModelColors();
 
-// Si le fichier de données réelles annonce un nombre de modèles différent
-// des listes par défaut ci-dessus (ex. nouveaux dossiers GRIB ajoutés),
-// on tronque/complète pour que l'index des scores reste aligné. On ne
-// devine pas de nouveaux noms : les modèles en trop reçoivent un nom
-// générique "Modèle N".
 function rebuildModelListsFromHeader() {
   if (!realHeader) return;
-  function adjust(list, n, prefix) {
-    const out = list.slice(0, n);
-    while (out.length < n) out.push({ id: prefix+out.length, name: 'Modèle '+(out.length+1), sub: '' });
-    return out;
-  }
-  ATMO = adjust(ATMO, realHeader.nAtmo, 'atmo');
-  OCEAN = adjust(OCEAN, realHeader.nOcean, 'ocean');
-  WAVE = adjust(WAVE, realHeader.nWave, 'wave');
+  ATMO = []; OCEAN = []; WAVE = [];
+  realHeader.models.forEach((m, gi) => {
+    const o = { gi, name: m.name, sub: m.sub };
+    (m.cat === 0 ? ATMO : m.cat === 1 ? OCEAN : WAVE).push(o);
+  });
   rebuildModelColors();
   rebuildLegend();
 }
@@ -913,14 +936,25 @@ function perColumnScores(lat, lon, modelGlobalIndex, mi, nsrc, colNames) {
     }
     return Array.from({length:nsrc}, () => null);
   }
+  if (realDataLoaded) {
+    // Des données réelles sont chargées (fichier creux), mais ce point
+    // précis n'a aucune donnée à proximité : honnête, pas de repli fictif.
+    return Array.from({length:nsrc}, () => null);
+  }
+  // Aucune donnée réelle chargée du tout (mode démonstration complet).
   return Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si));
 }
 
 function globalScoreForModel(lat, lon, modelGlobalIndex, nsrc, mi) {
   const rec = getRealRecord(lat, lon);
-  if (rec && Number.isFinite(rec.scores[modelGlobalIndex])) {
-    return rec.scores[modelGlobalIndex];
+  if (rec) {
+    // Le point a des données réelles : un modèle sans lien réel doit
+    // rester "sans donnée" (NaN), jamais comblé par un chiffre fictif.
+    const v = rec.scores[modelGlobalIndex];
+    return Number.isFinite(v) ? v : NaN;
   }
+  if (realDataLoaded) return NaN; // point réellement sans donnée (fichier creux)
+  // Aucune donnée réelle chargée du tout (mode démonstration complet).
   const sc = Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si));
   return avg(sc);
 }
@@ -951,27 +985,20 @@ function cellH(v) {
 // offsetOf : index de départ d'une categorie dans l'ordre global des
 // modèles (ATMO puis OCEAN puis WAVE), pour retrouver le bon indice dans
 // rec.scores / rec.typeScores.
-function categoryOffset(cat) {
-  if (cat === 'atmo') return 0;
-  if (cat === 'ocean') return ATMO.length;
-  return ATMO.length + OCEAN.length;
-}
 
 function bestModel(models, nsrc, lat, lon, cat) {
-  const offset = categoryOffset(cat);
   let best = { name:'', a:-1 };
   models.forEach((m,mi) => {
-    const a = globalScoreForModel(lat, lon, offset+mi, nsrc, mi);
+    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi);
     if (a > best.a) best = { name:m.name, a };
   });
   return best.name;
 }
 
 function bestScore(models, nsrc, lat, lon, cat) {
-  const offset = categoryOffset(cat);
   let best = -1;
   models.forEach((m,mi) => {
-    const a = globalScoreForModel(lat, lon, offset+mi, nsrc, mi);
+    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi);
     if (a > best) best = a;
   });
   return best;
@@ -980,28 +1007,38 @@ function bestScore(models, nsrc, lat, lon, cat) {
 function buildTable(tbodyId, models, nsrc, lat, lon, cat, colNames) {
   const body = document.getElementById(tbodyId);
   body.innerHTML = '';
-  const offset = categoryOffset(cat);
 
   if (models.length === 0) return null;
 
   const rows = models.map((m,mi) => {
-    const sc = perColumnScores(lat, lon, offset+mi, mi, nsrc, colNames);
-    const a = globalScoreForModel(lat, lon, offset+mi, nsrc, mi);
+    const sc = perColumnScores(lat, lon, m.gi, mi, nsrc, colNames);
+    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi);
     return { m, sc, a };
-  }).sort((a,b)=>b.a-a.a);
+  }).sort((a,b) => {
+    const af = Number.isFinite(a.a), bf = Number.isFinite(b.a);
+    if (af && bf) return b.a - a.a;
+    if (af) return -1;   // les modèles avec donnée passent avant ceux sans donnée
+    if (bf) return 1;
+    return 0;
+  });
+
+  const firstReal = rows.findIndex(r => Number.isFinite(r.a));
 
   rows.forEach((row,ri) => {
     const tr = document.createElement('tr');
-    if (ri===0) tr.classList.add('brow');
+    if (ri===firstReal) tr.classList.add('brow');
     const cells = row.sc.map(v=>`<td>${cellH(v)}</td>`).join('');
-    const tag = ri===0 ? '<span class="btag">TOP</span>' : '';
+    const tag = ri===firstReal ? '<span class="btag">TOP</span>' : '';
+    const totCell = Number.isFinite(row.a)
+      ? `<td class="tot" style="color:${scoreColor(row.a)}">${row.a.toFixed(2)}</td>`
+      : `<td class="tot"><span class="nd">—</span></td>`;
     tr.innerHTML = `
       <td><div class="mn">${row.m.name}${tag}</div><div class="ms">${row.m.sub}</div></td>
       ${cells}
-      <td class="tot" style="color:${scoreColor(row.a)}">${row.a.toFixed(2)}</td>`;
+      ${totCell}`;
     body.appendChild(tr);
   });
-  return rows[0].m.name;
+  return firstReal >= 0 ? rows[firstReal].m.name : null;
 }
 
 // ══════════════════════════════════════════════
@@ -1159,10 +1196,7 @@ async function importDataFile(input) {
   try {
     const buffer = await file.arrayBuffer();
     const parsed = parseDataBuffer(buffer);
-    realDataByKey = parsed.map;
-    realHeader = parsed;
-    setDataBadge(true);
-    rebuildModelListsFromHeader();
+    applyParsed(parsed);
 
     const btn = document.getElementById('btn-import-data');
     btn.classList.add('ok');
@@ -1490,14 +1524,20 @@ function getFakeSensorsNear(lat, lon) {
 function getSensorsNear(lat, lon) {
   const rec = getRealRecord(lat, lon);
   if (rec && rec.sensors.length > 0) {
-    return rec.sensors.map(s => ({
-      type: REAL_SENSOR_TYPE_NAMES[s.type] || '?',
-      icon: iconFor(REAL_SENSOR_TYPE_NAMES[s.type] || ''),
-      lat: s.lat, lon: s.lon,
-      reliability: s.reliability,
-    }));
+    const st = realStations, cosl = Math.cos(lat * Math.PI / 180);
+    return rec.sensors.map(i => {
+      const t = st.type[i];
+      let dl = st.lon[i] - lon; if (dl > 180) dl -= 360; else if (dl < -180) dl += 360;
+      const dist = Math.hypot(dl * cosl, st.lat[i] - lat);
+      const ageH = Math.abs(realTarget - st.time[i]) / 3600;
+      const rel = SENS_BASE_REL[t] * (1 - 0.4 * Math.min(1, dist / SENS_MAX_R[t])) * Math.max(0.3, Math.min(1, 1 - ageH / 6));
+      const name = REAL_SENSOR_TYPE_NAMES[t] || '?';
+      return { type: name, icon: iconFor(name), lat: st.lat[i], lon: st.lon[i], reliability: rel,
+               ageMin: Math.round((st.time[i] - realTarget) / 60) };
+    });
   }
   if (rec) return []; // point réel connu mais aucun capteur à portée : honnête, pas de fausses données
+  if (realDataLoaded) return []; // fichier creux : ce point n'a réellement aucun capteur à proximité
   return getFakeSensorsNear(lat, lon);
 }
 
@@ -1566,7 +1606,8 @@ function showStarPopup(lat, lon) {
       `;
       node.textContent = s.icon;
       node.title = `${s.type} · ${s.lat.toFixed(2)}°, ${s.lon.toFixed(2)}°`
-        + (s.reliability !== undefined ? ` · fiabilité ${s.reliability.toFixed(1)}/5` : '');
+        + (s.reliability !== undefined ? ` · fiabilité ${s.reliability.toFixed(1)}/5` : '')
+        + (s.ageMin !== undefined ? ` · obs ${s.ageMin >= 0 ? '+' : ''}${s.ageMin} min` : '');
       popup.appendChild(node);
 
       // Label type (discret, sans score)
