@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -394,19 +393,22 @@ td:first-child { text-align: left; padding-left: 14px; }
 .zt::before { display: none !important; }
 
 /* Legend */
-#legend {
-  position: fixed;
-  bottom: 50px; left: 10px;
+#legend-wrap { position: fixed; bottom: 50px; left: 10px; z-index: 900; display: flex; align-items: flex-end; gap: 8px; pointer-events: none; }
+#global-box { display: none; max-width: 190px; }
+#global-box.show { display: block; }
+#legend, #global-box {
   background: rgba(18,18,18,.92);
   border: 1px solid #2a2a2a;
   border-radius: 4px;
   padding: 8px 10px;
-  z-index: 900;
   font-size: 11px;
   color: #999;
-  pointer-events: none;
 }
-#legend .lt { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #444; margin-bottom: 5px; }
+#legend .lt, #global-box .lt { font-size: 9px; text-transform: uppercase; letter-spacing: .1em; color: #666; margin-bottom: 5px; }
+#global-box .gm { margin-bottom: 2px; line-height: 1.3; }
+#global-box .gm i { color: #555; font-style: normal; font-size: 10px; }
+.user-btn { text-decoration: none; }
+.user-btn img { width: 12px; height: 12px; object-fit: contain; }
 .li { display: flex; align-items: center; gap: 6px; margin-bottom: 3px; }
 .ld { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
 #data-badge {
@@ -463,11 +465,10 @@ td:first-child { text-align: left; padding-left: 14px; }
       <button class="p-close" onclick="closePanel()">✕</button>
     </div>
     <div class="p-tabs">
-      <button class="ptab active" onclick="showTab('atmo',this)">Atmosphériques</button>
-      <button class="ptab active" onclick="showTab('atmo',this)">Vent uniquement</button>
-<!-- Atention j'ai laissé show atmo, ce sera à corriger par la suite !!!!! ---->
-      <button class="ptab" onclick="showTab('ocean',this)">Océaniques</button>
-      <button class="ptab" onclick="showTab('vague',this)">Vagues</button>
+      <button class="ptab active" data-tab="atmo" onclick="showTab('atmo',this)">Atmosphériques</button>
+      <button class="ptab" data-tab="vent" onclick="showTab('vent',this)">Vent uniquement</button>
+      <button class="ptab" data-tab="ocean" onclick="showTab('ocean',this)">Océaniques</button>
+      <button class="ptab" data-tab="vague" onclick="showTab('vague',this)">Vagues</button>
     </div>
   </div>
   <div class="pb">
@@ -476,6 +477,14 @@ td:first-child { text-align: left; padding-left: 14px; }
       <table>
         <thead><tr><th>Modèle</th><th>Synop</th><th>Bateaux</th><th>Bouée</th><th>Radar</th><th>ASCAT</th><th>Radiosonde</th><th>Sat. IR</th><th>/5</th></tr></thead>
         <tbody id="tb-atmo"></tbody>
+      </table>
+    </div>
+    <div id="tab-vent" class="tc">
+      <div class="sec-head">Vent uniquement (vitesse, rafales, direction)</div>
+      <div class="sec-note">Score calculé uniquement sur les observations de vent comparées aux modèles atmosphériques.</div>
+      <table>
+        <thead><tr><th>Modèle</th><th>/5</th></tr></thead>
+        <tbody id="tb-vent"></tbody>
       </table>
     </div>
     <div id="tab-ocean" class="tc">
@@ -501,9 +510,15 @@ td:first-child { text-align: left; padding-left: 14px; }
 <div id="star-popup"></div>
 
 <!-- LEGEND -->
-<div id="legend">
-  <div class="lt" id="legend-title">Meilleur modèle atmo.</div>
-  <div id="legend-items"></div>
+<div id="legend-wrap">
+  <div id="legend">
+    <div class="lt" id="legend-title">Meilleur modèle atmo.</div>
+    <div id="legend-items"></div>
+  </div>
+  <div id="global-box">
+    <div class="lt">Modèles globaux</div>
+    <div id="global-items"></div>
+  </div>
 </div>
 
 <!-- BOTTOM BAR -->
@@ -519,28 +534,30 @@ td:first-child { text-align: left; padding-left: 14px; }
 
 
   <div class="bar-sep"></div>
-  <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+  <button class="bar-btn mode-btn active" id="btn-mode-atmo" onclick="setMode('atmo', this)" title="Meilleur modèle atmosphérique">
 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
   <path d="M2 5.5H8.5C10 5.5 10.8 4.8 10.8 3.8C10.8 2.9 10.1 2.2 9.2 2.2C8.4 2.2 7.8 2.7 7.6 3.4"/>
   <path d="M2 8.5H10C11.2 8.5 12 9.2 12 10.2C12 11.1 11.3 11.8 10.4 11.8C9.6 11.8 9 11.3 8.8 10.6"/>
 </svg>
     Atmosphérique
   </button>
-    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
-<svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-  <path d="M2 5.5H8.5C10 5.5 10.8 4.8 10.8 3.8C10.8 2.9 10.1 2.2 9.2 2.2C8.4 2.2 7.8 2.7 7.6 3.4"/>
-  <path d="M2 8.5H10C11.2 8.5 12 9.2 12 10.2C12 11.1 11.3 11.8 10.4 11.8C9.6 11.8 9 11.3 8.8 10.6"/>
+  <button class="bar-btn mode-btn" id="btn-mode-wind" onclick="setMode('wind', this)" title="Meilleur modèle pour le vent (vitesse, rafales, direction)">
+    <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round">
+  <circle cx="2.2" cy="13.8" r="1.1"/>
+  <path d="M3 13L10.2 5.8"/>
+  <path d="M10.2 5.8L13.8 7.3"/>
+  <path d="M8.9 7.1L10.7 7.8"/>
 </svg>
     Vent uniquement
   </button>
-    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+  <button class="bar-btn mode-btn" id="btn-mode-ocean" onclick="setMode('ocean', this)" title="Meilleur modèle de courants / océan">
 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
   <path d="M2 5C3 4 4 4 5 5C6 6 7 6 8 5C9 4 10 4 11 5"/>
   <path d="M2 9C3 8 4 8 5 9C6 10 7 10 8 9C9 8 10 8 11 9"/>
 </svg>
     Courants
   </button>
-    <button class="bar-btn" id="btn-zones" onclick="toggleZones(this)">
+  <button class="bar-btn mode-btn" id="btn-mode-wave" onclick="setMode('wave', this)" title="Meilleur modèle de vagues">
 <svg width="13" height="13" viewBox="0 0 14 14" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
   <path d="M1.5 8C2.5 6 3.5 6 4.5 8C5.5 10 6.5 10 7.5 8C8.5 6 9.5 6 10.5 8C11.5 10 12.5 10 13 8"/>
 </svg>
@@ -636,15 +653,13 @@ td:first-child { text-align: left; padding-left: 14px; }
   </button>
 
   <div class="bar-right">
-  <span id="by">Yann Kerhervé</span>
-    <div class="bar-sep"></div>
     <span id="pt-info"></span>
     <div class="bar-sep"></div>
     <button class="zoom-btn" onclick="map.zoomIn()">+</button>
     <span id="zoom-level">z3</span>
     <button class="zoom-btn" onclick="map.zoomOut()">−</button>
     <div class="bar-sep"></div>
-    <a class="zoom-btn" href="welcome.html"><img src="Av.png" width="10"></a>
+    <a class="bar-btn user-btn" href="welcome.html" title="Retour à l'accueil"><img src="Av.png" alt=""><span id="user-name">Accueil</span></a>
   </div>
 </div>
 
@@ -711,21 +726,23 @@ const SENS_BASE_REL = [4.2, 3.5, 4.0, 3.2, 3.8, 4.5, 3.0];
 function keyOf(lat, lon) { return (Math.round(lat*100) + 9000) * 40000 + (Math.round(lon*100) + 18000); }
 
 // Format v2 produit par gen_points_mer.c (little-endian) :
-//   "MPTS_BIN" u32 version u32 nPoints u32 nStations u32 target | u8 nModels u8 nTypes u8 maxSensors u8 0
+//   "MPTS_BIN" u32 version(=3) u32 nPoints u32 nStations u32 target u32 created(epoch) | u8 nModels u8 nTypes u8 maxSensors u8 farStep(x0.1°)
 //   nModels x { u8 cat, u8 len, nom, u8 len, sous-titre }
 //   nStations x { u8 type, f32 lat, f32 lon, u32 time }
 //   nPoints x { f32 lat, f32 lon, u8 nS, nS x u16 stationIdx,
-//               nModels x { u8 masque ; si bit7 : u8 score global ; puis u8 par bit de type (0..6) } }   (score = octet/50)
+//               nModels x { u8 masque ; u8 flags ; si masque bit7 : u8 score global ; puis u8 par bit de type (0..6) ; si flags bit0 : u8 score vent } }   (score = octet/50)
+//   nS = 0 : point « plein océan » (aucun capteur à portée) dont le score est extrapolé depuis les capteurs les plus proches (maille farStep)
 function parseDataBuffer(buffer) {
   const dv = new DataView(buffer);
   const u8 = new Uint8Array(buffer);
   const magic = String.fromCharCode(...u8.subarray(0, 8));
   if (magic !== 'MPTS_BIN') throw new Error("Format de fichier de scores non reconnu (magic invalide).");
   const version = dv.getUint32(8, true);
-  if (version !== 2) throw new Error("Version " + version + " non supportée : regénère le fichier avec la dernière version de gen_points_mer.");
-  const nPoints = dv.getUint32(12, true), nStations = dv.getUint32(16, true), target = dv.getUint32(20, true);
-  const nModels = dv.getUint8(24), nTypes = dv.getUint8(25);
-  let o = 28;
+  if (version !== 3) throw new Error("Version " + version + " non supportée : regénère le fichier avec la dernière version de gen_points_mer.");
+  const nPoints = dv.getUint32(12, true), nStations = dv.getUint32(16, true), target = dv.getUint32(20, true), created = dv.getUint32(24, true);
+  const nModels = dv.getUint8(28), nTypes = dv.getUint8(29);
+  const farStep = dv.getUint8(31) / 10;     // maille (deg) des points plein océan ; 0 = aucun
+  let o = 32;
   const dec = new TextDecoder('utf-8');
   const models = [];
   for (let m = 0; m < nModels; m++) {
@@ -746,21 +763,25 @@ function parseDataBuffer(buffer) {
     const lat = dv.getFloat32(o, true), lon = dv.getFloat32(o + 4, true); o += 8;
     const ns = dv.getUint8(o); o += 1 + 2 * ns;
     for (let m = 0; m < nModels; m++) {
-      const mask = dv.getUint8(o++);
+      const mask = dv.getUint8(o++), flags = dv.getUint8(o++);
       let cnt = (mask & 0x80) ? 1 : 0;
       for (let t = 0; t < nTypes; t++) if (mask & (1 << t)) cnt++;
+      if (flags & 1) cnt++;
       o += cnt;
     }
     index.set(keyOf(lat, lon), start);
   }
-  return { dv, index, stations: st, models, nModels, nTypes, nStations, nPoints, version, target };
+  return { dv, index, stations: st, models, nModels, nTypes, nStations, nPoints, version, target, created, farStep };
 }
 
 function applyParsed(parsed) {
   realIndex = parsed.index; realDV = parsed.dv; realStations = parsed.stations; realTarget = parsed.target;
   realHeader = parsed; realDataLoaded = true; recCache.clear();
+  lastUpdate = parsed.created ? new Date(parsed.created * 1000) : null;
+  if (typeof refreshUpdateLabel === 'function') refreshUpdateLabel();
   setDataBadge(true);
   rebuildModelListsFromHeader();
+  if (typeof indexReady !== 'undefined' && indexReady && typeof renderPoints === 'function') renderPoints();
 }
 
 async function loadRealData() {
@@ -798,23 +819,31 @@ function getRealRecord(lat, lon) {
   const key = keyOf(lat, lon);
   let rec = recCache.get(key);
   if (rec !== undefined) return rec;
-  const off = realIndex.get(key);
-  if (off === undefined) return null;
+  let off = realIndex.get(key), approx = false;
+  if (off === undefined && realHeader.farStep > 0) {
+    // point de la base absent du fichier creux : on reprend le point « plein océan » le plus proche (maille farStep)
+    const fs = realHeader.farStep;
+    const k2 = keyOf(Math.round(lat / fs) * fs, Math.round(lon / fs) * fs);
+    off = realIndex.get(k2); approx = off !== undefined;
+  }
+  if (off === undefined) { recCache.set(key, null); return null; }
   const dv = realDV, nM = realHeader.nModels, nT = realHeader.nTypes;
   let o = off + 8;
   const ns = dv.getUint8(o++);
   const sensors = [];
   for (let k = 0; k < ns; k++) { sensors.push(dv.getUint16(o, true)); o += 2; }
   const scores = new Float32Array(nM).fill(NaN);
+  const wind = new Float32Array(nM).fill(NaN);
   const typeScores = [];
   for (let m = 0; m < nM; m++) {
     const row = new Float32Array(REAL_SENS_TYPE_COUNT).fill(NaN);
-    const mask = dv.getUint8(o++);
+    const mask = dv.getUint8(o++), flags = dv.getUint8(o++);
     if (mask & 0x80) scores[m] = dv.getUint8(o++) / 50;
     for (let t = 0; t < nT; t++) if (mask & (1 << t)) row[t] = dv.getUint8(o++) / 50;
+    if (flags & 1) wind[m] = dv.getUint8(o++) / 50;
     typeScores.push(row);
   }
-  rec = { lat, lon, sensors, scores, typeScores };
+  rec = { lat, lon, sensors: approx ? [] : sensors, scores, wind, typeScores, approx };
   if (recCache.size > 20000) recCache.clear();
   recCache.set(key, rec);
   return rec;
@@ -838,6 +867,12 @@ async function checkAuth() {
   const overlay = document.getElementById('login-overlay');
   if (overlay) overlay.style.display = 'none';
   
+  const u = session.user || {};
+  const md = u.user_metadata || {};
+  const full = md.full_name || md.name || [md.first_name || md.given_name, md.last_name || md.family_name].filter(Boolean).join(' ')
+    || md.username || md.display_name || (u.email ? u.email.split('@')[0] : '');
+  if (full) document.getElementById('user-name').textContent = full;
+
   loadMarineData();
   loadRealData();
 }
@@ -901,14 +936,24 @@ function rebuildModelListsFromHeader() {
   });
   rebuildModelColors();
   rebuildLegend();
+  if (typeof rebuildZones === 'function') rebuildZones();
 }
 
+let curMode = 'atmo';
+const NO_DATA_COLOR = '#555b66';
+let colorByScore = false;
+const MODE_LABELS = { atmo:'Meilleur modèle atmo.', wind:'Meilleur modèle vent', ocean:'Meilleur modèle courants', wave:'Meilleur modèle vagues' };
+// Légende : uniquement les modèles présents dans points_mer_data.bin pour le mode courant
 function rebuildLegend() {
   const li = document.getElementById('legend-items');
-  li.innerHTML = '';
-  Object.entries(MODEL_COLORS).forEach(([n,c]) => {
-    li.innerHTML += `<div class="li"><div class="ld" style="background:${c}"></div><span>${n}</span></div>`;
-  });
+  const title = document.getElementById('legend-title');
+  if (colorByScore) return;
+  title.textContent = MODE_LABELS[curMode];
+  const list = modeModels();
+  li.innerHTML = list.length
+    ? list.map(m => `<div class="li"><div class="ld" style="background:${MODEL_COLORS[m.name]}"></div><span>${m.name}</span></div>`).join('')
+    : '<div class="li"><span>Aucun modèle dans le fichier</span></div>';
+  li.innerHTML += `<div class="li"><div class="ld" style="background:${NO_DATA_COLOR}"></div><span>Pas de score</span></div>`;
 }
 rebuildLegend();
 
@@ -954,17 +999,17 @@ function perColumnScores(lat, lon, modelGlobalIndex, mi, nsrc, colNames) {
   return Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si));
 }
 
-function globalScoreForModel(lat, lon, modelGlobalIndex, nsrc, mi) {
+function globalScoreForModel(lat, lon, modelGlobalIndex, nsrc, mi, kind) {
   const rec = getRealRecord(lat, lon);
   if (rec) {
     // Le point a des données réelles : un modèle sans lien réel doit
     // rester "sans donnée" (NaN), jamais comblé par un chiffre fictif.
-    const v = rec.scores[modelGlobalIndex];
+    const v = (kind === 'wind' ? rec.wind : rec.scores)[modelGlobalIndex];
     return Number.isFinite(v) ? v : NaN;
   }
   if (realDataLoaded) return NaN; // point réellement sans donnée (fichier creux)
   // Aucune donnée réelle chargée du tout (mode démonstration complet).
-  const sc = Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si));
+  const sc = Array.from({length:nsrc}, (_,si) => srand(lat,lon,mi,si + (kind === 'wind' ? 100 : 0)));
   return avg(sc);
 }
 
@@ -995,10 +1040,15 @@ function cellH(v) {
 // modèles (ATMO puis OCEAN puis WAVE), pour retrouver le bon indice dans
 // rec.scores / rec.typeScores.
 
+// Mode d'affichage de la carte : 'atmo' | 'wind' | 'ocean' | 'wave'
+function modeModels() { return curMode === 'ocean' ? OCEAN : curMode === 'wave' ? WAVE : ATMO; }
+function modeNsrc() { return curMode === 'ocean' ? 6 : curMode === 'wave' ? 5 : 7; }
+
+// Meilleur modèle pour le mode courant ('' si aucun modèle n'a de score en ce point)
 function bestModel(models, nsrc, lat, lon, cat) {
   let best = { name:'', a:-1 };
   models.forEach((m,mi) => {
-    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi);
+    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi, curMode);
     if (a > best.a) best = { name:m.name, a };
   });
   return best.name;
@@ -1007,21 +1057,21 @@ function bestModel(models, nsrc, lat, lon, cat) {
 function bestScore(models, nsrc, lat, lon, cat) {
   let best = -1;
   models.forEach((m,mi) => {
-    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi);
+    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi, curMode);
     if (a > best) best = a;
   });
   return best;
 }
 
-function buildTable(tbodyId, models, nsrc, lat, lon, cat, colNames) {
+function buildTable(tbodyId, models, nsrc, lat, lon, cat, colNames, kind) {
   const body = document.getElementById(tbodyId);
   body.innerHTML = '';
 
   if (models.length === 0) return null;
 
   const rows = models.map((m,mi) => {
-    const sc = perColumnScores(lat, lon, m.gi, mi, nsrc, colNames);
-    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi);
+    const sc = kind === 'wind' ? [] : perColumnScores(lat, lon, m.gi, mi, nsrc, colNames);
+    const a = globalScoreForModel(lat, lon, m.gi, nsrc, mi, kind);
     return { m, sc, a };
   }).sort((a,b) => {
     const af = Number.isFinite(a.a), bf = Number.isFinite(b.a);
@@ -1223,7 +1273,6 @@ async function importDataFile(input) {
 const pointsLayer = L.layerGroup().addTo(map);
 const linesLayer  = L.layerGroup().addTo(map);
 let renderTimer   = null;
-let colorByScore  = false;
 let selectedMarker = null;
 let selectedLatLon = null;
 
@@ -1408,10 +1457,12 @@ function renderPoints() {
 }
 
 function drawPoint(lat, lon, r, renderer, zonePoints, zoom) {
-  const bm = bestModel(ATMO, 7, lat, lon, 'atmo');
+  const mods = modeModels();
+  const bm = bestModel(mods, modeNsrc(), lat, lon, curMode);
+  const bs = colorByScore ? bestScore(mods, modeNsrc(), lat, lon, curMode) : -1;
   const color = colorByScore
-    ? scoreColor(bestScore(ATMO, 7, lat, lon, 'atmo'))
-    : (MODEL_COLORS[bm] || '#4a90d9');
+    ? (bs >= 0 ? scoreColor(bs) : NO_DATA_COLOR)
+    : (bm ? (MODEL_COLORS[bm] || '#4a90d9') : NO_DATA_COLOR);
 
   const m = L.circleMarker([lat, lon], {
     radius: r, fillColor: color, fillOpacity: 0.82,
@@ -1424,7 +1475,7 @@ function drawPoint(lat, lon, r, renderer, zonePoints, zoom) {
   });
   pointsLayer.addLayer(m);
 
-  if (zoom >= 4 && zoom <= 7 && !colorByScore) {
+  if (zoom >= 4 && zoom <= 7 && !colorByScore && bm) {
     if (!zonePoints[bm]) zonePoints[bm] = [];
     if (zonePoints[bm].length < 100) zonePoints[bm].push([lat, lon]);
   }
@@ -1557,8 +1608,8 @@ function showStarPopup(lat, lon) {
   popup.innerHTML = '';
   popup.style.display = 'block';
 
-  const bm    = bestModel(ATMO, 7, lat, lon, 'atmo');
-  const color = MODEL_COLORS[bm] || '#4a90d9';
+  const bm    = bestModel(modeModels(), modeNsrc(), lat, lon, curMode);
+  const color = bm ? (MODEL_COLORS[bm] || '#4a90d9') : NO_DATA_COLOR;
 
   // Capteurs réels autour du point (ou fictifs en mode démo)
   const sensors = getSensorsNear(lat, lon);
@@ -1670,7 +1721,7 @@ function toggleColorMode(btn) {
   const legendTitle = document.getElementById('legend-title');
   const legendItems = document.getElementById('legend-items');
   if (colorByScore) {
-    legendTitle.textContent = 'Score du meilleur modèle';
+    legendTitle.textContent = 'Score du meilleur modèle · ' + MODE_LABELS[curMode].replace('Meilleur modèle ', '');
     legendItems.innerHTML = `
       <div class="li"><div class="ld" style="background:#4ade80"></div><span>≥ 4.5 Excellent</span></div>
       <div class="li"><div class="ld" style="background:#86efac"></div><span>≥ 3.5 Bon</span></div>
@@ -1678,7 +1729,6 @@ function toggleColorMode(btn) {
       <div class="li"><div class="ld" style="background:#f97316"></div><span>≥ 1.5 Faible</span></div>
       <div class="li"><div class="ld" style="background:#f87171"></div><span>&lt; 1.5 Mauvais</span></div>`;
   } else {
-    legendTitle.textContent = 'Meilleur modèle atmo.';
     rebuildLegend();
   }
   renderPoints();
@@ -1687,42 +1737,66 @@ function toggleColorMode(btn) {
 // ══════════════════════════════════════════════
 // ZONES
 // ══════════════════════════════════════════════
-const ZONES = [
-  ['Atlantique NE', 'AROME',    [[35,-40],[65,-40],[65,10],[35,10]]],
-  ['Atlantique NO', 'GFS',      [[25,-100],[55,-100],[55,-50],[25,-50]]],
-  ['Europe côtier', 'ARPEGE-Europe',   [[42,-5],[50,-5],[50,10],[42,10]]],
-  ['Mer du Nord',   'ICON-EU',    [[50,2],[62,2],[62,12],[50,12]]],
-  ['Pac. NO',       'GFS',     [[20,140],[50,140],[50,180],[20,180]]],
-  ['Pac. NE',       'GFS',     [[20,-180],[50,-180],[50,-120],[20,-120]]],
-  ['Antilles',      'AROME-OM-Antilles', [[10,-65],[20,-65],[20,-58],[10,-58]]],
-];
-
+// Domaines des modèles RÉGIONAUX (rectangles approximatifs : [lat min, lon min, lat max, lon max]).
+// Tout modèle du fichier absent de cette table est considéré comme GLOBAL et listé à côté de la légende.
+const REGIONAL_DOMAINS = {
+  'AROME':             { box:[37.5, -12.0, 55.4, 16.0],  label:'France / Europe de l\'Ouest', tip:'top' },
+  'AROME-HD':          { box:[37.5, -12.0, 55.4, 16.0],  label:'France / Europe de l\'Ouest', tip:'bottom' },
+  'AROME-OM-Antilles': { box:[10.5, -68.0, 24.0, -52.0], label:'Antilles', tip:'center' },
+  'ARPEGE-Europe':     { box:[20.0, -32.0, 72.0, 42.0],  label:'Europe / Atlantique Nord', tip:'center' },
+  'ICON-EU':           { box:[29.5, -23.5, 70.5, 62.5],  label:'Europe', tip:'center' },
+  'ICON-D2':           { box:[43.2, -3.9, 58.1, 20.3],   label:'Allemagne / Europe centrale', tip:'center' },
+};
 const zonesLayer = L.layerGroup();
 let zonesVisible = false;
 
+function allModelNames() { return [...ATMO, ...OCEAN, ...WAVE]; }
+
 function rebuildZones() {
   zonesLayer.clearLayers();
-  ZONES.forEach(([zname, mname, coords]) => {
-    const color = MODEL_COLORS[mname] || '#4a90d9';
-    const poly = L.polygon(coords, {
-      fillColor: color, fillOpacity: .1,
-      color: color, weight: 1.5, dashArray: '5 4',
-      interactive: false,
+  const gl = [];
+  allModelNames().forEach(m => {
+    const d = REGIONAL_DOMAINS[m.name];
+    if (!d) { gl.push(m); return; }
+    const color = MODEL_COLORS[m.name] || '#4a90d9';
+    const [a, b, c, e] = d.box;
+    const poly = L.rectangle([[a, b], [c, e]], {
+      fillColor: color, fillOpacity: .07, color: color, weight: 1.5, dashArray: '5 4', interactive: false,
     });
-    poly.bindTooltip(`${mname} · ${zname}`, {
-      permanent: true, direction: 'center',
-      className: 'zt', opacity: 1,
-    });
+    poly.bindTooltip(`${m.name} · ${d.label}`, { permanent: true, direction: d.tip, className: 'zt', opacity: 1 });
     zonesLayer.addLayer(poly);
   });
+  document.getElementById('global-items').innerHTML = gl.length
+    ? gl.map(m => `<div class="gm"><span class="ld" style="display:inline-block;background:${MODEL_COLORS[m.name]};margin-right:6px"></span>${m.name} <i>${m.sub || ''}</i></div>`).join('')
+    : '<div class="gm"><i>Aucun modèle global</i></div>';
 }
 rebuildZones();
 
-function toggleZones(btn) {
-  zonesVisible = !zonesVisible;
-  btn.classList.toggle('active', zonesVisible);
-  if (zonesVisible) zonesLayer.addTo(map);
-  else map.removeLayer(zonesLayer);
+function setZones(on) {
+  zonesVisible = on;
+  const btn = document.getElementById('btn-zones');
+  if (btn) btn.classList.toggle('active', on);
+  document.getElementById('global-box').classList.toggle('show', on);
+  if (on) zonesLayer.addTo(map); else map.removeLayer(zonesLayer);
+}
+function toggleZones() { setZones(!zonesVisible); }
+
+// ══════════════════════════════════════════════
+// MODE DE LA CARTE (Atmosphérique / Vent uniquement / Courants / Vagues)
+// ══════════════════════════════════════════════
+const MODE_TAB = { atmo:'atmo', wind:'vent', ocean:'ocean', wave:'vague' };
+function setMode(mode, btn) {
+  curMode = mode;
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b === btn));
+  setZones(false);                       // les zones des modèles ne s'affichent qu'avec le bouton « Zones modèles »
+  rebuildLegend();
+  if (colorByScore) {                    // le titre du mode « score » suit aussi le mode
+    document.getElementById('legend-title').textContent = 'Score du meilleur modèle · ' + MODE_LABELS[curMode].replace('Meilleur modèle ', '');
+  }
+  const tabBtn = document.querySelector(`.ptab[data-tab="${MODE_TAB[mode]}"]`);
+  if (tabBtn) showTab(MODE_TAB[mode], tabBtn);
+  renderPoints();
+  if (selectedLatLon) showStarPopup(selectedLatLon[0], selectedLatLon[1]);
 }
 
 // ══════════════════════════════════════════════
@@ -1760,6 +1834,8 @@ function onPointClick(lat, lon) {
 
   const ba = buildTable('tb-atmo', ATMO, 7, lat, lon, 'atmo', ATMO_COLS);
 
+  buildTable('tb-vent', ATMO, 0, lat, lon, 'atmo', null, 'wind');
+
   const oceanEmpty = document.getElementById('tb-ocean-empty');
   const oceanTable = document.getElementById('tb-ocean-table');
   if (OCEAN.length === 0) {
@@ -1774,7 +1850,8 @@ function onPointClick(lat, lon) {
 
   buildTable('tb-vague', WAVE, 5, lat, lon, 'wave', null);
 
-  document.getElementById('pb').textContent = ba ? ('▲ '+ba) : '';
+  const bmMode = bestModel(modeModels(), modeNsrc(), lat, lon, curMode);
+  document.getElementById('pb').textContent = bmMode ? ('▲ '+bmMode) : (ba ? ('▲ '+ba) : '');
 
   document.getElementById('panel').classList.add('open');
 }
@@ -1797,19 +1874,22 @@ map.on('click', () => { closePanel(); });
 // ══════════════════════════════════════════════
 // UPDATE TIMESTAMP
 // ══════════════════════════════════════════════
-let lastUpdate = new Date();
-function fmtAge() {
-  const s = Math.round((new Date()-lastUpdate)/1000);
-  if (s < 60) return `il y a ${s}s`;
-  if (s < 3600) return `il y a ${Math.floor(s/60)}min`;
-  return `il y a ${Math.floor(s/3600)}h`;
+// « Dernière MAJ » = date de création de points_mer_data.bin (champ `created` de l'en-tête)
+let lastUpdate = null;
+function pad2(n) { return String(n).padStart(2, '0'); }
+function fmtUpdate() {
+  if (!lastUpdate) return '—';
+  const d = lastUpdate;
+  const abs = `${pad2(d.getDate())}/${pad2(d.getMonth() + 1)}/${d.getFullYear()} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  const s = Math.max(0, Math.round((new Date() - d) / 1000));
+  const age = s < 60 ? `il y a ${s}s` : s < 3600 ? `il y a ${Math.floor(s/60)}min` : s < 172800 ? `il y a ${Math.floor(s/3600)}h` : `il y a ${Math.floor(s/86400)}j`;
+  return `${abs} (${age})`;
 }
-setInterval(()=>{ document.getElementById('last-update').textContent = fmtAge(); }, 5000);
-document.getElementById('last-update').textContent = fmtAge();
+function refreshUpdateLabel() { document.getElementById('last-update').textContent = fmtUpdate(); }
+setInterval(refreshUpdateLabel, 30000);
+refreshUpdateLabel();
 
 function reloadData() {
-  lastUpdate = new Date();
-  document.getElementById('last-update').textContent = fmtAge();
   loadRealData();
   renderPoints();
   const btn = document.getElementById('btn-reload');
